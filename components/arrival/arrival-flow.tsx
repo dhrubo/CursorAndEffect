@@ -11,7 +11,7 @@ import { coachFollowUp, extractGoals } from "@/lib/plan/extract-goals";
 import { parseSaverState } from "@/lib/saver/schema";
 import { useSaver } from "@/lib/saver/use-saver-state";
 
-type Step = "loading" | "welcome" | "intro" | "talk" | "confirm" | "connect" | "review";
+type Step = "loading" | "welcome" | "talk" | "confirm" | "connect" | "review";
 type Line = { role: "coach" | "user"; text: string };
 
 const OPENING =
@@ -152,7 +152,7 @@ export function ArrivalFlow() {
     const slide = WELCOME[welcomeIndex];
     const last = welcomeIndex === WELCOME.length - 1;
     const join = () => {
-      if (last) setStep("intro");
+      if (last) setStep("talk");
       else setWelcomeIndex((current) => current + 1);
     };
     return (
@@ -180,27 +180,6 @@ export function ArrivalFlow() {
           onClick={join}
         >
           Join
-        </button>
-      </main>
-    );
-  }
-
-  if (step === "intro") {
-    return (
-      <main className="mx-auto grid min-h-[78vh] max-w-xl content-center gap-8 px-6 py-16 text-center text-white">
-        <Wordmark variant="white" className="mx-auto" />
-        <div className="grid gap-3">
-          <h1 className="font-display text-[40px] leading-[1.15] font-normal">See your plans come together</h1>
-          <p className="text-[17px] text-white/80">A quiet way to look at your money and the life you want next.</p>
-        </div>
-        <ul className="grid gap-3 text-left text-[17px]">
-          <li className="frosted rounded-2xl px-4 py-3">Understand where your money sits today.</li>
-          <li className="frosted rounded-2xl px-4 py-3">Talk through the life you want, and what it costs.</li>
-          <li className="frosted rounded-2xl px-4 py-3">Connect the accounts and dates that matter.</li>
-          <li className="frosted rounded-2xl px-4 py-3">Leave with a plan you can actually look at.</li>
-        </ul>
-        <button type="button" className="frosted mx-auto rounded-full px-6 py-3 text-[17px]" onClick={() => setStep("talk")}>
-          Start planning
         </button>
       </main>
     );
