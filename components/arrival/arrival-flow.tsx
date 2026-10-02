@@ -6,7 +6,7 @@ import { MicIcon, SendIcon } from "lucide-react";
 import { BrandStar } from "@/components/shell/brand-mark";
 import { Wordmark } from "@/components/shell/wordmark";
 import { gbp, pct } from "@/lib/format";
-import { buildPlanState, sourceFindings, type Connections } from "@/lib/plan/build-state";
+import { buildPlanState, type Connections } from "@/lib/plan/build-state";
 import { coachFollowUp, extractGoals } from "@/lib/plan/extract-goals";
 import { parseSaverState } from "@/lib/saver/schema";
 import { useSaver } from "@/lib/saver/use-saver-state";
@@ -17,10 +17,10 @@ type Line = { role: "coach" | "user"; text: string };
 const OPENING =
   "What are you hoping the next few years look like? A home, a wedding, time away, paying something down — start wherever feels true.";
 
-const SOURCES: { id: keyof Connections; title: string; items: string[] }[] = [
-  { id: "banking", title: "Banking", items: ["Current account", "Savings account", "Credit card"] },
-  { id: "investments", title: "Investments", items: ["ISA", "Investment account", "Pension"] },
-  { id: "other", title: "Other sources", items: ["Email", "Calendar"] },
+const ACCOUNTS: { source: keyof Connections; name: string }[] = [
+  { source: "banking", name: "Current account" },
+  { source: "banking", name: "Savings account" },
+  { source: "banking", name: "Credit card" },
 ];
 
 const EMPTY_CONNECTIONS: Connections = { banking: false, investments: false, other: false };
@@ -53,6 +53,7 @@ export function ArrivalFlow() {
   const [listening, setListening] = useState(false);
   const [voiceNote, setVoiceNote] = useState("");
   const [connections, setConnections] = useState<Connections>(EMPTY_CONNECTIONS);
+  const [addedAccounts, setAddedAccounts] = useState<string[]>([]);
   const [pending, setPending] = useState<keyof Connections | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -288,32 +289,29 @@ export function ArrivalFlow() {
   }
 
   if (step === "connect") {
-    const accounts = SOURCES.flatMap((source) =>
-      (connections[source.id] ? sourceFindings(transcript, source.id) : source.items).map((name) => ({
-        source: source.id,
-        name,
-      })),
-    );
     return (
       <main className="mx-auto grid min-h-[78vh] max-w-xl content-start gap-6 px-5 py-12 text-[#1a1a1a]">
         <h1 className="text-center text-[13px] tracking-[0.22em] uppercase">Connect your accounts</h1>
         <ul className="grid gap-3">
-          {accounts.map((account) => {
-            const added = connections[account.source];
+          {ACCOUNTS.map((account) => {
+            const added = addedAccounts.includes(account.name);
             return (
               <li
-                key={`${account.source}-${account.name}`}
+                key={account.name}
                 className="flex items-center justify-between gap-4 rounded-[18px] border border-[#1a1a1a] px-4 py-3"
               >
-                <p className="max-w-[9rem] text-[17px] leading-tight">{account.name}</p>
+                <p className="text-[17px] leading-tight">{account.name}</p>
                 <button
                   type="button"
                   className="rounded-full bg-[#1a1a1a] px-7 py-2 text-[16px] text-white disabled:opacity-70"
-                  disabled={added || pending !== null}
+                  disabled={added}
                   aria-pressed={added}
-                  onClick={() => connect(account.source)}
+                  onClick={() => {
+                    setAddedAccounts((current) => (current.includes(account.name) ? current : [...current, account.name]));
+                    connect(account.source);
+                  }}
                 >
-                  {pending === account.source ? "Adding" : added ? "Added" : "Add"}
+                  {added ? "Added" : "Add"}
                 </button>
               </li>
             );
