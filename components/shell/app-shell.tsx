@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { PushNotifier } from "@/components/coach/push-notifier";
 import { DemoControls } from "@/components/demo/demo-controls";
 import { CoachProvider } from "./coach-provider";
 import { NavBar } from "./nav-bar";
@@ -22,6 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </footer>
         {pathname !== "/" && <NavBar />}
         <DemoControls />
+        <PushNotifier />
       </div>
     </CoachProvider>
   );

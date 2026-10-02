@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SAVER_PERSONAS } from "@/data/saver-personas";
 import { applyDemoAction } from "@/lib/saver/actions";
 import { parseSaverState } from "@/lib/saver/schema";
-import { BANNED_PHRASES, allSampleCopy } from "./copy";
+import { BANNED_PHRASES, REMINDER_COPY, allSampleCopy, reminderAt } from "./copy";
 import { evaluateCoach } from "./rules";
 import { classifyTypology } from "./typology";
 
@@ -35,11 +35,24 @@ describe("coach", () => {
   });
 
   it("keeps coach copy free of shame, streaks and points", () => {
-    const blob = allSampleCopy().join(" ").toLowerCase();
+    const samples = allSampleCopy();
+    expect(samples).toContain("Before that coffee");
+    expect(samples).toContain("Remember, you can have your coffee at the office, skip that Nero stop");
+    expect(samples).toContain("Before that night out");
+    expect(samples).toContain("That £46 puts Bali on 12 Sep instead of 4 Sep. Keep the plan, or put £20 toward Bali.");
+    expect(samples).toContain("Spotify is coming up");
+    expect(samples).toContain("Spotify, £12.99, usually leaves around the 4th. On Bali, that is about 1 day later.");
+    expect(samples).toContain("£28 is still yours");
+    expect(samples).toContain("£28 left this week. Move it to Bali and arrive 2 days earlier.");
+    const blob = samples.join(" ").toLowerCase();
     for (const phrase of BANNED_PHRASES) {
       const pattern = new RegExp(`\\b${phrase.replace(" ", "\\s+")}\\b`, "i");
       expect(blob).not.toMatch(pattern);
     }
+  });
+
+  it("wraps the reminder rotation back to the Nero line", () => {
+    expect(reminderAt(4)).toBe(REMINDER_COPY[0]);
   });
 });
 
