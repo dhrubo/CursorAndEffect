@@ -389,7 +389,11 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
         }}
         className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-2 pr-1"
       >
-        <CoachBubble>What can I do for you?</CoachBubble>
+        <CoachBubble>
+          {state?.goals[0]
+            ? `You've overspent this month. Here's how we fix it. Move a little extra into ${state.goals.find((goal) => goal.isPrimary)?.name ?? state.goals[0].name}, and skip one spend you won't miss.`
+            : "You've overspent this month. Here's how we fix it."}
+        </CoachBubble>
         {messages.length === 0 &&
           SAVER_SUGGESTIONS.map((suggestion) => (
             <button
