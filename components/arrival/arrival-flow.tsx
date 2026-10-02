@@ -236,7 +236,7 @@ export function ArrivalFlow() {
         </form>
         {voiceNote && <p className="text-[14px] text-[#1a1a1a]/70">{voiceNote}</p>}
         {heardUser && (
-          <button type="button" className="frosted rounded-full px-5 py-3 text-[17px]" onClick={() => setStep("confirm")}>
+          <button type="button" className="rounded-full bg-[#1a1a1a] px-5 py-3 text-[17px] text-white" onClick={() => setStep("confirm")}>
             See what I heard
           </button>
         )}
@@ -279,7 +279,7 @@ export function ArrivalFlow() {
           <button type="button" className="rounded-full px-5 py-3 text-[17px] text-[#1a1a1a]/70" onClick={() => setStep("talk")}>
             Go back
           </button>
-          <button type="button" className="frosted rounded-full px-5 py-3 text-[17px]" onClick={() => setStep("connect")}>
+          <button type="button" className="rounded-full bg-[#1a1a1a] px-5 py-3 text-[17px] text-white" onClick={() => setStep("connect")}>
             Connect my money
           </button>
         </div>
@@ -377,7 +377,7 @@ export function ArrivalFlow() {
         <button type="button" className="rounded-full px-5 py-3 text-[17px] text-[#1a1a1a]/70" onClick={() => setStep("connect")} disabled={generating}>
           Go back
         </button>
-        <button type="button" className="frosted rounded-full px-5 py-3 text-[17px] disabled:opacity-60" onClick={generate} disabled={generating}>
+        <button type="button" className="rounded-full bg-[#1a1a1a] px-5 py-3 text-[17px] text-white disabled:opacity-60" onClick={generate} disabled={generating}>
           {generating ? "Putting your plan together…" : "Generate plan"}
         </button>
       </div>
