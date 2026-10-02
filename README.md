@@ -1,10 +1,12 @@
-# CursorAndEffect
+# Nurture
 
-## NextPound: "What should I do with my next £?"
+A warm savings coach. Set a near-term plan, watch it come together, and see what a spend does to the arrival date. The UK priority ladder still lives on Money health.
 
-A UK money guide for adults. Enter a quick snapshot of your finances (or load a demo household) and NextPound
-shows where your next pound does the most good across **debt, savings, ISAs, current accounts, your pension
-match and your mortgage**, all in one plan.
+Load Jordyn or Jordan from the splash screen, or plan a new goal. Demo moments (a night out, payday, a missed save) sit on the Moments button. Numbers come from the calculators. The coach explains them and does not invent maths.
+
+## NextPound ladder, now Money health
+
+The earlier guide answered "What should I do with my next £?" across **debt, savings, ISAs, current accounts, a pension match and a mortgage**. That engine is unchanged and available at `/money-health` (`/plan` redirects there).
 
 - A deterministic **rules engine** follows the widely used UK priority order and splits any amount step by step.
 - A **chat guide** explains trade-offs and runs what-ifs. It never does its own maths: every figure comes from

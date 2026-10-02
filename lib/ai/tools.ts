@@ -5,14 +5,20 @@ import { buildCheckIn } from "@/lib/checkin/build";
 import { compareDebtStrategies, repayableDebts } from "@/lib/finance/debt";
 import { buildPlan } from "@/lib/finance/ladder";
 import { compareOverpayVsSave, remortgageOptions } from "@/lib/finance/mortgage";
-import { findSavingsProducts } from "@/lib/finance/savings";
-import type { Goal } from "@/lib/goals/model";
+import { findSavingsProducts, isaRoom, lisaEligibility, lisaRoom } from "@/lib/finance/savings";
+import type { Goal as CheckInGoal } from "@/lib/goals/model";
 import type { HistorySnapshot } from "@/lib/history";
 import { reviewSpending, suggestSpendingChanges } from "@/lib/spending/insights";
 import type { Profile } from "@/lib/profile";
+import { categoryLabel, categoryTotals, classifyTypology } from "@/lib/coach/typology";
+import { primaryGoal } from "@/lib/coach/rules";
+import { deriveProfile } from "@/lib/saver/derive-profile";
+import type { Goal, SaverState } from "@/lib/saver/schema";
+import { buildCheckpoints } from "@/lib/timeline/checkpoints";
+import { divertImpact, projectGoal, replan } from "@/lib/timeline/eta";
 
 export type ToolContext = {
-  goals?: Goal[];
+  goals?: CheckInGoal[];
   history?: HistorySnapshot[];
   today?: Date;
 };
@@ -122,4 +128,140 @@ export function createTools(profile: Profile, context: ToolContext = {}) {
 }
 
 export type AppTools = ReturnType<typeof createTools>;
-export type AppUIMessage = UIMessage<never, UIDataTypes, InferUITools<AppTools>>;
+
+function goalSnapshot(goal: Goal, today: string) {
+  const projection = projectGoal(goal, { today });
+  const next = buildCheckpoints(goal, today).find((item) => item.amount > goal.savedSoFar + 0.5);
+  return {
+    id: goal.id,
+    name: goal.name,
+    category: goal.category,
+    isPrimary: goal.isPrimary,
+    savedSoFar: goal.savedSoFar,
+    targetAmount: goal.targetAmount,
+    amountLeft: projection.amountLeft,
+    etaDate: projection.etaDate,
+    daysLeft: projection.daysLeft,
+    targetDate: goal.targetDate,
+    nextCheckpoint: next ? { amount: next.amount, date: next.date, kind: next.kind } : null,
+  };
+}
+
+export function createSaverTools(state: SaverState) {
+  const profile = deriveProfile(state);
+  return {
+    ...createTools(profile),
+
+    get_goal_status: tool({
+      description: "Distance left, arrival date and next checkpoint for one plan, or the primary plan if goalId is omitted.",
+      inputSchema: z.object({ goalId: z.string().optional() }),
+      execute: async ({ goalId }) => {
+        const goal = (goalId ? state.goals.find((item) => item.id === goalId) : undefined) ?? primaryGoal(state);
+        if (!goal) return { error: "No plan yet." } as const;
+        return goalSnapshot(goal, state.today);
+      },
+    }),
+
+    simulate_spend: tool({
+      description: "Show how spending an amount today moves the arrival of a named plan. Use before commenting on any spend.",
+      inputSchema: z.object({
+        amount: amount.describe("Pounds they might spend"),
+        goalId: z.string().optional(),
+      }),
+      execute: async ({ amount: spend, goalId }) => {
+        const goal = (goalId ? state.goals.find((item) => item.id === goalId) : undefined) ?? primaryGoal(state);
+        if (!goal) return { error: "No plan yet." } as const;
+        const impact = divertImpact(goal, spend, { today: state.today });
+        return { goalName: goal.name, amount: spend, ...impact };
+      },
+    }),
+
+    suggest_swaps: tool({
+      description: "Personal swaps from the user's own spending categories, framed as bringing a plan's date forward.",
+      inputSchema: z.object({ category: z.string().optional() }),
+      execute: async () => {
+        const goal = primaryGoal(state);
+        const top = categoryTotals(state.transactions).slice(0, 3);
+        return {
+          goalName: goal?.name ?? "your plan",
+          swaps: top.map((row) => ({
+            category: categoryLabel(row.category),
+            recentSpend: row.amount,
+            idea: `One quieter week of ${categoryLabel(row.category).toLowerCase()} can move ${goal?.name ?? "the plan"} forward.`,
+          })),
+        };
+      },
+    }),
+
+    find_idle_money: tool({
+      description: "Find cash sitting in the current account, and unused ISA or Lifetime ISA allowance for longer plans.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const current = state.accounts.find((account) => account.kind === "current");
+        const spare = Math.max(0, Math.round((current?.balance ?? 0) - 1000));
+        const derived = deriveProfile(state);
+        return {
+          currentBalance: current?.balance ?? 0,
+          spareAboveBuffer: spare,
+          isaAllowanceLeft: isaRoom(derived),
+          lisaAllowanceLeft: lisaRoom(derived),
+          lisa: lisaEligibility(derived),
+        };
+      },
+    }),
+
+    replan_goal: tool({
+      description: "After a missed save, either keep the arrival date (new weekly amount) or keep the amount (new arrival).",
+      inputSchema: z.object({
+        goalId: z.string().optional(),
+        keep: z.enum(["date", "amount"]),
+      }),
+      execute: async ({ goalId, keep }) => {
+        const goal = (goalId ? state.goals.find((item) => item.id === goalId) : undefined) ?? primaryGoal(state);
+        if (!goal) return { error: "No plan yet." } as const;
+        return { goalName: goal.name, ...replan(goal, state.today, keep) };
+      },
+    }),
+
+    milestone_check: tool({
+      description: "A warm check-in: one thing going well, one focus, and the next checkpoint. Use when they ask how they are doing.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const goal = primaryGoal(state);
+        if (!goal) return { error: "No plan yet." } as const;
+        const snapshot = goalSnapshot(goal, state.today);
+        const typology = classifyTypology(state.transactions);
+        return {
+          name: state.profile.name,
+          goingWell: `${goal.name} has ${snapshot.amountLeft} still to go${snapshot.etaDate ? `, arriving ${snapshot.etaDate}` : ""}.`,
+          focus: typology.line,
+          next: snapshot.nextCheckpoint
+            ? `The next step is ${snapshot.nextCheckpoint.amount} on ${snapshot.nextCheckpoint.date}.`
+            : `${goal.name} is funded.`,
+        };
+      },
+    }),
+
+    propose_goal: tool({
+      description: "Draft a new plan the person can add. Do not claim it is already saved.",
+      inputSchema: z.object({
+        category: z.enum(["trip", "emergency", "family", "home", "car", "event", "learning", "other"]),
+        name: z.string().min(1).max(40).optional(),
+        targetAmount: amount.optional(),
+        targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      }),
+      execute: async (input) => ({
+        draft: true as const,
+        name: input.name ?? "New plan",
+        category: input.category,
+        horizon: input.category === "home" ? ("long" as const) : ("short" as const),
+        targetAmount: input.targetAmount ?? 500,
+        targetDate: input.targetDate ?? state.today,
+        whyItMatters: "Something you actually want.",
+      }),
+    }),
+  };
+}
+
+export type SaverTools = ReturnType<typeof createSaverTools>;
+export type AppUIMessage = UIMessage<never, UIDataTypes, InferUITools<SaverTools>>;
