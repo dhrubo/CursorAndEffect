@@ -78,11 +78,12 @@ function showReminder(index: number) {
   void showOsNotification(copy);
 }
 
-export function PushNotifier() {
+export function PushNotifier({ active }: { active: boolean }) {
   const permission = useSyncExternalStore(subscribePermission, readPermission, serverPermission);
   const shownReminder = useSyncExternalStore(subscribeShown, readShown, serverShown);
 
   useEffect(() => {
+    if (!active) return;
     let cancelled = false;
     let step = 0;
     const tick = () => {
@@ -96,7 +97,7 @@ export function PushNotifier() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, []);
+  }, [active]);
 
   async function allowAlerts() {
     if (typeof Notification === "undefined" || !shownReminder) return;
@@ -105,7 +106,7 @@ export function PushNotifier() {
     if (next === "granted") await showOsNotification(shownReminder.copy);
   }
 
-  if (!shownReminder?.visible) return null;
+  if (!active || !shownReminder?.visible) return null;
   const { copy } = shownReminder;
 
   return (
