@@ -1,38 +1,133 @@
-# Cursor & Effect
+# CursorAndEffect
 
-A pointer studio. Pick an effect, then move across the page: a following ring, a fading trail, a speed-stretched comet, a spotlight, click ripples, drifting particles, magnetic cards, or a dot field that pushes aside.
+## NextPound: "What should I do with my next £?"
 
-The stage reads pointer position and speed. The dock changes which effect is live, plus its scale, strength, and ink.
+A UK money guide for adults. Enter a quick snapshot of your finances (or load a demo household) and NextPound
+shows where your next pound does the most good across **debt, savings, ISAs, current accounts, your pension
+match and your mortgage**, all in one plan.
 
-## Run
+- A deterministic **rules engine** follows the widely used UK priority order and splits any amount step by step.
+- A **chat guide** explains trade-offs and runs what-ifs. It never does its own maths: every figure comes from
+  the same calculators as the dashboard, called as tools and shown as cards. With `XAI_API_KEY` that guide is
+  Grok. Without a key, the same screen uses a scripted reply so the demo still runs.
+- Everything is stored in the browser (`localStorage`). There is no database and no login.
+
+> Guidance, not regulated financial advice. All providers and rates are fictional and illustrative.
+> Tax rules are for England, Wales and Northern Ireland (2026/27).
+
+## Quick start
+
+Requires Node.js 22+.
 
 ```bash
 npm install
-npm run dev
+cp .env.example .env.local   # then paste your key from https://console.x.ai
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3847](http://localhost:3847).
+The plan, milestones, Wrapped story and scripted chat all work without a key. Set `XAI_API_KEY` to talk to
+Grok instead of the scripted replies. You can set `XAI_MODEL` to use another Grok model (default `grok-4.7`).
 
-```bash
-npm test
-npm run lint
-npm run build
-npm start
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm test` | Run the Vitest suite (finance engine plus AI tool streaming) |
+| `npm run lint` | ESLint |
+| `npm run build` | Production build |
+
+> **OneDrive tip:** this folder lives in OneDrive. Syncing `node_modules` makes installs slow and can cause
+> file-lock errors. Pause sync while installing, or move the repo outside OneDrive.
+
+## How it works
+
+```mermaid
+flowchart LR
+  User --> ProfileForm
+  ProfileForm --> LocalStorage
+  LocalStorage --> PlanDashboard
+  PlanDashboard --> FinanceEngine
+  PlanDashboard --> ChatPanel
+  ChatPanel -->|"messages + profile"| ChatRoute
+  ChatRoute --> Grok["Grok grok-4.7"]
+  Grok -->|tool calls| AiTools
+  AiTools --> FinanceEngine
+  FinanceEngine --> MockProducts
+  AiTools -->|results rendered as cards| ChatPanel
 ```
 
-`npm start` also listens on port 3847.
+The chat route validates the profile with Zod and builds the tools *around* it, so Grok only supplies scenario
+inputs (for example `amount: 500`) and can't misstate the user's own numbers.
 
-## Controls
+### The priority ladder (`lib/finance/ladder.ts`)
 
-- Effects **1–8**, or the arrow keys, switch the active effect.
-- **Scale** changes the size of the mark, the light, or the field.
-- **Strength** changes easing, push, spark count, and how fast ripples grow.
-- **Ink** recolors the effect. The page chrome stays put.
-- **Native cursor** brings the system pointer back. It is hidden by default so the drawn mark can lead.
-- **Next effect** and **Another ink** sit on the stage. In the magnetic effect they lean toward the pointer. The dock does not.
+1. **Essentials and minimum payments.** If outgoings exceed income, or payments have been missed, the plan
+   stops and signposts free debt advice (MoneyHelper, StepChange, National Debtline, Citizens Advice).
+2. **Starter buffer:** the greater of £1,000 or one month of outgoings, in the best instant-access home after tax.
+3. **Employer pension match:** flagged as an action (costs nothing extra from this pot).
+4. **High-interest debt** (8%+ APR, overdrafts included), highest rate first. Live 0% deals are skipped,
+   with a warning showing the monthly amount needed to clear them before the promo ends.
+5. **Emergency fund:** 3 to 6 months of outgoings, in a taxable easy-access account or a Cash ISA, whichever pays
+   more after the user's marginal savings tax.
+6. **Lifetime ISA** for first-time buyers aged 18 to 39 (property up to £450k), £4,000 a year with a 25% bonus.
+7. **Other debt** where the APR beats the best after-tax savings rate. Student loans are always excluded.
+8. **Mortgage overpayment vs saving**, within the yearly penalty-free allowance.
+9. **Long-term saving:** Cash or Stocks & Shares ISA, or a pension top-up. No specific investment picks.
 
-If the browser asks for reduced motion, marks snap to the pointer, the grid push is smaller, and particles stay off.
+Alongside the ladder: **quick wins** (account fees, switching bonuses, expensive overdrafts, idle current-account
+cash, tax on savings interest) and **mortgage tools** (overpay vs save at today's rate *and* at the best
+remortgage rate if a deal ends within 6 months, plus a remortgage comparison against the standard variable rate).
 
-## Stack
+### Project layout
 
-Next.js, React, TypeScript, Tailwind CSS, and shadcn/ui.
+```
+app/
+  page.tsx                 Landing, demo personas, onboarding form
+  plan/page.tsx            Dashboard and chat panel
+  api/chat/route.ts        Grok via AI SDK: streamText + tools
+components/
+  profile-form.tsx, onboarding.tsx
+  plan/                    Allocation, ladder, alerts, quick wins, debt chart, mortgage views
+  chat/                    Chat panel, markdown, tool-result cards
+lib/
+  profile.ts               Zod schema and types
+  use-profile.ts           localStorage-backed hook
+  finance/                 tax.ts, savings.ts, debt.ts, mortgage.ts, ladder.ts (+ tests)
+  ai/                      tools.ts, systemPrompt.ts (+ stream tests with a mock model)
+data/
+  products.ts              Fictional UK products, ratesAsOf
+  personas.ts              Sam, Priya, Mark
+```
+
+## Demo script (about 4 minutes)
+
+1. **Landing page:** "Most comparison sites look at one product at a time; this looks at your whole picture."
+2. **Load Priya** (two cards, an overdraft, a loan, missing her employer match).
+   - The £1,500 is split: top up the buffer, clear the 39.9% overdraft, then start on the 24.9% card.
+   - Point out the **action** to raise her pension contribution and the **0% deal ending in 5 months** warning.
+   - Scroll to the avalanche vs snowball chart.
+   - In chat, ask *"Avalanche or snowball for my debts?"*. The answer arrives with a **Calculated** card.
+   - Try a what-if: *"What if I put £1,200 a month towards them?"*
+3. **Load Sam** (first-time buyer, 28). £5,000 goes to the buffer, then the emergency fund, then the **Lifetime ISA**
+   with a 25% bonus. The student loan is deliberately left alone. Ask *"Is a Lifetime ISA right for my house deposit?"*
+4. **Load Mark** (higher-rate taxpayer, mortgage at 2.09%, deal ends in 4 months).
+   - £10,000 goes to a **tax-free Cash ISA**, because saving beats overpaying at 2.09%.
+   - The overpay-vs-save card re-runs the comparison at the best remortgage rate, where it gets much closer.
+   - Quick wins show the tax he's paying on savings interest.
+   - Ask *"My deal ends soon. What are my options?"*
+5. **Guardrails:** tell the guide *"I've missed my last two credit card payments"*. It switches to kind, free
+   debt-advice signposting.
+
+## Guardrails
+
+- Numbers come only from tested, deterministic functions. The system prompt forbids Grok from inventing figures
+  and requires it to quote the `ratesAsOf` date.
+- Framed as guidance, not advice: no specific investment recommendations; complex topics are referred to
+  regulated advisers or MoneyHelper's Pension Wise.
+- Vulnerability handling: missed payments or negative budgets stop the plan and signpost free debt advice;
+  the guide signposts Samaritans (116 123) if self-harm is mentioned.
+- Privacy: the profile stays in the browser and is sent to the server (and Grok) only when the user chats.
+
+## Ideas for next steps
+
+Open Banking import for real transactions, live rate feeds, Scottish tax bands, a regular-saver optimiser,
+mortgage affordability for first-time buyers, and saved plans with accounts.
