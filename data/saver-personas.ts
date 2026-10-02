@@ -27,7 +27,7 @@ const jordynProfile: Profile = {
   netMonthlyIncome: 2100,
   essentialMonthlySpend: 1450,
   cashSavings: 1440,
-  idleCurrentAccountCash: 820,
+  idleCurrentAccountCash: 2340,
   lisaContributedThisYear: 400,
   employerMatchAvailable: true,
   gettingFullEmployerMatch: true,
@@ -73,7 +73,7 @@ export const SAVER_PERSONAS: SaverPersona[] = [
         signals: ["A flight price for Bali is sitting in your inbox."],
       },
       accounts: [
-        { id: "jor-current", provider: "Hearth", name: "Current account", balance: 820, kind: "current", connected: true },
+        { id: "jor-current", provider: "Hearth", name: "Current account", balance: 2340, kind: "current", connected: true },
         { id: "jor-bali", provider: "Hearth", name: "Bali pot", balance: 1160, aer: 4.1, kind: "easy_access", connected: true },
         { id: "jor-emergency", provider: "Northwind", name: "Emergency fund", balance: 280, aer: 4.5, kind: "easy_access", connected: true },
         { id: "jor-lisa", provider: "Northwind", name: "Lifetime ISA", balance: 400, aer: 4, kind: "lisa", connected: true },
