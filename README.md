@@ -1,14 +1,17 @@
-# CursorAndEffect
+# Nurture
 
-## NextPound: "What should I do with my next £?"
+A warm savings coach. Set a near-term plan, watch it come together, and see what a spend does to the arrival date. The UK priority ladder still lives on Money health.
 
-A UK money guide for adults. Enter a quick snapshot of your finances (or load a demo household) and NextPound
-shows where your next pound does the most good across **debt, savings, ISAs, current accounts, your pension
-match and your mortgage**, all in one plan.
+Load Jordyn or Jordan from the splash screen, or plan a new goal. Demo moments (a night out, payday, a missed save) sit on the Moments button. Numbers come from the calculators. The coach explains them and does not invent maths.
+
+## NextPound ladder, now Money health
+
+The earlier guide answered "What should I do with my next £?" across **debt, savings, ISAs, current accounts, a pension match and a mortgage**. That engine is unchanged and available at `/money-health` (`/plan` redirects there).
 
 - A deterministic **rules engine** follows the widely used UK priority order and splits any amount step by step.
-- A **Grok-powered chat guide** (xAI `grok-4.7`) explains trade-offs and runs what-ifs. It never does its own
-  maths: every figure comes from the same calculators as the dashboard, called as tools and shown as cards.
+- A **chat guide** explains trade-offs and runs what-ifs. It never does its own maths: every figure comes from
+  the same calculators as the dashboard, called as tools and shown as cards. With `XAI_API_KEY` that guide is
+  Grok. Without a key, the same screen uses a scripted reply so the demo still runs.
 - Everything is stored in the browser (`localStorage`). There is no database and no login.
 
 > Guidance, not regulated financial advice. All providers and rates are fictional and illustrative.
@@ -24,8 +27,8 @@ cp .env.example .env.local   # then paste your key from https://console.x.ai
 npm run dev                  # http://localhost:3000
 ```
 
-The dashboard works without a key. Only the chat guide needs `XAI_API_KEY`. You can set `XAI_MODEL` to use
-another Grok model (default `grok-4.7`).
+The plan, milestones, Wrapped story and scripted chat all work without a key. Set `XAI_API_KEY` to talk to
+Grok instead of the scripted replies. You can set `XAI_MODEL` to use another Grok model (default `grok-4.7`).
 
 | Script | What it does |
 | --- | --- |
