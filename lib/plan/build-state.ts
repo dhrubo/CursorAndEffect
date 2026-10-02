@@ -97,12 +97,14 @@ function fromConversation(extraction: Extraction, connections: Connections, toda
   const demo = SAVER_PERSONAS[0].state;
   const home = extraction.goals.find((goal) => goal.category === "home");
   const accounts: Account[] = [];
+  const saved = extraction.goals.reduce((total, goal) => total + goal.savedSoFar, 0);
+  const debt = connections.banking ? CREDIT_CARD.balance : 0;
   if (connections.banking) {
     accounts.push({
       id: "current",
       provider: "Hearth",
       name: "Current account",
-      balance: 2140,
+      balance: Math.max(0, 3000 - saved + debt),
       kind: "current",
       connected: true,
     });
@@ -130,7 +132,7 @@ function fromConversation(extraction: Extraction, connections: Connections, toda
       netMonthlyIncome: 4200,
       essentialMonthlySpend: 2400,
       cashSavings: extraction.goals.reduce((total, goal) => total + goal.savedSoFar, 0),
-      idleCurrentAccountCash: connections.banking ? 2140 : 0,
+      idleCurrentAccountCash: connections.banking ? Math.max(0, 3000 - saved + debt) : 0,
       debts: connections.banking ? [CREDIT_CARD] : [],
       buyingHome: Boolean(home),
       firstTimeBuyer: Boolean(home),
