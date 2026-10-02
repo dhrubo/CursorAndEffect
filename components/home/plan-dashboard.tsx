@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { gbp } from "@/lib/format";
 import { financialPosition, planInsights } from "@/lib/plan/insights";
 import type { Goal, SaverState } from "@/lib/saver/schema";
@@ -34,10 +35,14 @@ export function PlanDashboard({ state, onReset }: { state: SaverState; onReset: 
         </h2>
         <div className="grid grid-cols-2 gap-3">
           {state.goals.map((goal) => (
-            <article key={goal.id} className="grid gap-4 rounded-[18px] border border-[#1a1a1a] p-4">
+            <Link
+              key={goal.id}
+              href={`/goals/${goal.id}`}
+              className="grid gap-4 rounded-[18px] border border-[#1a1a1a] p-4 transition-colors hover:bg-[#1a1a1a]/5"
+            >
               <p className="max-w-[8rem] text-[18px] leading-tight">{goal.name}</p>
               <GoalRing name={goal.name} value={progressOf(goal)} />
-            </article>
+            </Link>
           ))}
         </div>
         <button type="button" className="mt-6 text-sm text-[#1a1a1a]/60 underline-offset-4 hover:underline" onClick={onReset}>
