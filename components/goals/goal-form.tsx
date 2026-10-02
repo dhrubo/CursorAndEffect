@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { PencilIcon, Trash2Icon } from "lucide-react";
+import { spokenDate } from "@/lib/dates";
+import { gbp } from "@/lib/format";
 import { GOAL_KIND_LABELS, GOAL_KINDS, GoalSchema, type Goal, type GoalKind } from "@/lib/goals/model";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +16,8 @@ const EMPTY: Omit<Goal, "id"> = {
   saved: 0,
   kind: "savings",
 };
+
+const fieldClass = "min-h-11 rounded-xl bg-white/70";
 
 function newId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `goal-${Date.now()}`;
@@ -46,66 +50,72 @@ export function GoalForm({ goals, onChange }: { goals: Goal[]; onChange: (goals:
   };
 
   return (
-    <div className="grid gap-4">
-      <form onSubmit={submit} className="grid gap-3">
+    <div className="grid gap-4 rounded-[20px] bg-nuture-cream p-6 text-nuture-ink">
+      <h2 className="text-[22px] font-medium">{editingId ? "Edit this goal" : "Plan a new goal"}</h2>
+      <form onSubmit={submit} className="grid gap-4">
         <div className="grid gap-1.5">
           <Label htmlFor="goal-name">Goal name</Label>
           <Input
             id="goal-name"
             value={draft.name}
             placeholder="e.g. Cornwall week"
+            className={fieldClass}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
           />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <MoneyField
-            id="goal-target"
-            label="Target"
-            value={draft.target}
-            onChange={(target) => setDraft((current) => ({ ...current, target }))}
-          />
-          <MoneyField
-            id="goal-saved"
-            label="Already saved"
-            value={draft.saved}
-            onChange={(saved) => setDraft((current) => ({ ...current, saved }))}
+        <MoneyField
+          id="goal-target"
+          label="Target"
+          value={draft.target}
+          onChange={(target) => setDraft((current) => ({ ...current, target }))}
+        />
+        <MoneyField
+          id="goal-saved"
+          label="Already saved"
+          value={draft.saved}
+          onChange={(saved) => setDraft((current) => ({ ...current, saved }))}
+        />
+        <div className="grid gap-1.5">
+          <Label htmlFor="goal-date" className="text-[15px] font-normal text-nuture-ink/60">
+            Date
+          </Label>
+          <Input
+            id="goal-date"
+            type="date"
+            value={draft.targetDate}
+            className={fieldClass}
+            onChange={(event) => setDraft((current) => ({ ...current, targetDate: event.target.value }))}
           />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor="goal-date">Target date</Label>
-            <Input
-              id="goal-date"
-              type="date"
-              value={draft.targetDate}
-              onChange={(event) => setDraft((current) => ({ ...current, targetDate: event.target.value }))}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="goal-kind">Kind</Label>
-            <select
-              id="goal-kind"
-              value={draft.kind}
-              onChange={(event) => setDraft((current) => ({ ...current, kind: event.target.value as GoalKind }))}
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              {GOAL_KINDS.map((kind) => (
-                <option key={kind} value={kind}>
-                  {GOAL_KIND_LABELS[kind]}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="goal-kind">Kind</Label>
+          <select
+            id="goal-kind"
+            value={draft.kind}
+            onChange={(event) => setDraft((current) => ({ ...current, kind: event.target.value as GoalKind }))}
+            className="min-h-11 w-full rounded-xl border border-input bg-white/70 px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            {GOAL_KINDS.map((kind) => (
+              <option key={kind} value={kind}>
+                {GOAL_KIND_LABELS[kind]}
+              </option>
+            ))}
+          </select>
         </div>
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
           </p>
         )}
-        <div className="flex gap-2">
-          <Button type="submit">{editingId ? "Save goal" : "Add goal"}</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="submit"
+            className="min-h-11 rounded-full bg-nuture-ink px-5 text-[17px] text-white hover:bg-nuture-ink/90"
+          >
+            {editingId ? "Save goal" : "Plan a new goal"}
+          </Button>
           {editingId && (
-            <Button type="button" variant="ghost" onClick={reset}>
+            <Button type="button" variant="ghost" className="min-h-11 rounded-full px-5" onClick={reset}>
               Cancel
             </Button>
           )}
@@ -113,25 +123,26 @@ export function GoalForm({ goals, onChange }: { goals: Goal[]; onChange: (goals:
       </form>
 
       {goals.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No named goals yet. Add a holiday, a purchase or an extra buffer and it joins the milestone track.
+        <p className="text-[15px] text-nuture-ink/60">
+          No named goals yet. Plan a holiday, a purchase or an extra buffer and it sits with the others.
         </p>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid gap-3">
           {goals.map((goal) => (
-            <li key={goal.id} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
+            <li key={goal.id} className="flex items-center justify-between gap-2 rounded-[20px] bg-white/50 px-4 py-3">
               <div>
-                <p className="text-sm font-medium">{goal.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {GOAL_KIND_LABELS[goal.kind]} · £{goal.saved.toLocaleString("en-GB")} of £
-                  {goal.target.toLocaleString("en-GB")} · {goal.targetDate}
+                <p className="text-[15px] font-medium">{goal.name}</p>
+                <p className="text-[15px] text-nuture-ink/60">
+                  {GOAL_KIND_LABELS[goal.kind]} · {gbp(goal.saved)} of {gbp(goal.target)}
                 </p>
+                <p className="text-[13px] text-nuture-ink/45">{spokenDate(goal.targetDate)}</p>
               </div>
               <div className="flex gap-1">
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-sm"
+                  size="icon"
+                  className="min-h-11 min-w-11"
                   aria-label={`Edit ${goal.name}`}
                   onClick={() => {
                     setEditingId(goal.id);
@@ -150,7 +161,8 @@ export function GoalForm({ goals, onChange }: { goals: Goal[]; onChange: (goals:
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-sm"
+                  size="icon"
+                  className="min-h-11 min-w-11"
                   aria-label={`Delete ${goal.name}`}
                   onClick={() => onChange(goals.filter((item) => item.id !== goal.id))}
                 >
@@ -180,14 +192,14 @@ function MoneyField({
     <div className="grid gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       <div className="relative">
-        <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-muted-foreground">£</span>
+        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-nuture-ink/60">£</span>
         <Input
           id={id}
           type="number"
           min={0}
           step={50}
           value={Number.isFinite(value) ? value : 0}
-          className="pl-6"
+          className={`${fieldClass} pl-7`}
           onChange={(event) => {
             const next = Number(event.target.value);
             onChange(Number.isFinite(next) ? next : 0);

@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 import { DM_Sans, Inknut_Antiqua } from "next/font/google";
-import { AppShell } from "@/components/shell/app-shell";
+import { RootChrome } from "@/components/shell/root-chrome";
 import "./globals.css";
 
-const sans = DM_Sans({
+const dmSans = DM_Sans({
+  variable: "--font-dm",
   subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
-const display = Inknut_Antiqua({
+const inknut = Inknut_Antiqua({
+  variable: "--font-inknut",
   subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-display",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -23,9 +25,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-GB" className={`${sans.variable} ${display.variable} ${sans.className} h-full antialiased`}>
+    <html lang="en-GB" className={`${dmSans.variable} ${inknut.variable} h-full antialiased`}>
       <body className="min-h-full">
-        <AppShell>{children}</AppShell>
+        <RootChrome>{children}</RootChrome>
       </body>
     </html>
   );

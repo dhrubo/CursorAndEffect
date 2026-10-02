@@ -1,167 +1,79 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Wordmark } from "@/components/shell/wordmark";
-import { gbp, pct } from "@/lib/format";
-import { financialPosition, goalStatus, onTrackCount, planInsights, upcomingEvents } from "@/lib/plan/insights";
-import type { GoalStatus } from "@/lib/plan/insights";
-import type { SaverState } from "@/lib/saver/schema";
+import Link from "next/link";
+import { gbp } from "@/lib/format";
+import { financialPosition, planInsights } from "@/lib/plan/insights";
+import type { Goal, SaverState } from "@/lib/saver/schema";
 
-export function PlanDashboard({ state, onReset }: { state: SaverState; onReset: () => void }) {
+export function PlanDashboard({ state }: { state: SaverState }) {
   const position = financialPosition(state);
-  const events = upcomingEvents(state);
-  const notes = planInsights(state);
-  const name = state.profile.name || "there";
+  const summary = planInsights(state).join(" ") || "You're doing well against your goals.";
 
   return (
-    <main className="mx-auto grid w-full max-w-3xl gap-8 px-4 py-8">
-      <div className="flex items-center justify-between gap-3">
-        <Wordmark variant="gradient" />
-        <button type="button" className="text-sm text-muted-foreground underline-offset-4 hover:underline" onClick={onReset}>
-          Start again
-        </button>
-      </div>
-      <header className="grid gap-1">
-        <p className="text-sm text-muted-foreground">Your plan</p>
-        <h1 className="font-display text-[40px] leading-[1.15] font-normal">Hey {name}</h1>
-      </header>
-      <section className="grid grid-cols-2 gap-3" aria-label="Plan summary">
-        <Stat label="Active goals" value={String(state.goals.length)} />
-        <Stat label="Upcoming events" value={String(events.length)} />
-        <Stat label="Savings and investments" value={gbp(position.savingsAndInvestments)} />
-        <Stat label="Goals on track" value={String(onTrackCount(state))} />
-      </section>
-      <section className="grid gap-3">
-        <h2 className="font-display text-[28px] font-normal">Net worth</h2>
-        <Card>
-          <CardContent className="grid gap-4">
-            <p className="text-3xl font-medium tabular-nums">{gbp(position.netWorth)}</p>
-            <dl className="grid gap-2 text-sm">
-              <Row label="Cash" value={gbp(position.cash)} />
-              <Row label="Savings" value={gbp(position.savings)} />
-              <Row label="Investments" value={gbp(position.investments)} />
-              <Row label="Pension" value={gbp(position.pension)} />
-              <Row label="Debts" value={gbp(position.debts)} />
-              <Row label="Monthly income" value={gbp(position.income)} />
-              <Row label="Monthly spending" value={gbp(position.spending)} />
-              <Row label="Left each month" value={gbp(position.surplus)} />
-            </dl>
-          </CardContent>
-        </Card>
-      </section>
-      <section className="grid gap-3">
-        <h2 className="font-display text-[28px] font-normal">Credit</h2>
-        {state.profile.debts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No credit connected.</p>
-        ) : (
-          <div className="grid gap-3">
-            {state.profile.debts.map((debt) => (
-              <Card key={debt.id} size="sm">
-                <CardContent className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-base">{debt.name}</p>
-                    <p className="text-sm text-muted-foreground">{pct(debt.apr)} APR</p>
-                  </div>
-                  <p className="text-lg tabular-nums">{gbp(debt.balance)}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-      <section className="grid gap-3">
-        <h2 className="font-display text-[28px] font-normal">Goals</h2>
-        <div className="grid gap-3">
-          {state.goals.map((goal) => {
-            const status = goalStatus(goal, state.today);
-            const progress = goal.targetAmount > 0 ? Math.min(100, Math.round((goal.savedSoFar / goal.targetAmount) * 100)) : 0;
-            return (
-              <Card key={goal.id}>
-                <CardContent className="grid gap-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-lg">{goal.name}</p>
-                    <Badge variant={badgeFor(status)}>{status}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {gbp(goal.savedSoFar)} saved of {gbp(goal.targetAmount)}
-                  </p>
-                  <Progress value={progress} aria-label={`${goal.name} progress`} />
-                  <p className="text-sm text-muted-foreground">Target: {monthYear(goal.targetDate)}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+    <main>
+      <section className="bg-[url('/brand/image-mesh-gradient.jpg')] bg-cover bg-center px-4 pt-6 pb-14">
+        <p className="inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/30 px-3 py-1 text-[14px] text-[#1a1a1a] backdrop-blur-md">
+          <span aria-hidden="true">✦</span> Summary
+        </p>
+        <p className="mt-4 rounded-[22px] border border-white/75 bg-white/30 px-4 py-4 text-[17px] leading-relaxed text-[#1a1a1a] backdrop-blur-md">
+          {summary}
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <figure className="rounded-[18px] border border-white/75 bg-white/30 px-4 py-3 backdrop-blur-md">
+            <figcaption className="text-[14px] text-[#1a1a1a]">Net worth</figcaption>
+            <p className="text-[28px] leading-tight font-medium text-[#1a1a1a] tabular-nums">{gbp(position.netWorth)}</p>
+          </figure>
+          <figure className="rounded-[18px] border border-white/75 bg-white/30 px-4 py-3 backdrop-blur-md">
+            <figcaption className="text-[14px] text-[#1a1a1a]">Credit</figcaption>
+            <p className="text-[28px] leading-tight font-medium text-[#1a1a1a] tabular-nums">{gbp(-position.debts)}</p>
+          </figure>
         </div>
       </section>
-      <section className="grid gap-3">
-        <h2 className="font-display text-[28px] font-normal">Plans</h2>
-        {notes.length > 0 && (
-          <Card>
-            <CardContent className="grid gap-2">
-              {notes.map((note) => (
-                <p key={note} className="text-[15px] leading-relaxed">
-                  {note}
-                </p>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-        <div className="grid gap-3">
-          {events.map((event) => {
-            const goal = state.goals.find((item) => item.id === event.goalId);
-            return (
-              <Card key={event.id} size="sm">
-                <CardContent className="grid gap-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-base">{event.name}</p>
-                    <p className="text-sm tabular-nums">{gbp(event.cost)}</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {monthYear(event.date)}
-                    {goal ? ` · ${goal.name}` : ""}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
+      <section className="relative z-10 -mt-8 min-h-[50vh] rounded-t-[28px] bg-white px-4 pt-6 pb-10 text-[#1a1a1a]">
+        <h2 className="mb-4 flex items-center gap-1.5 text-[18px] font-medium">
+          <span aria-hidden="true">✦</span> Goals
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          {state.goals.map((goal) => (
+            <Link
+              key={goal.id}
+              href={`/goals/${goal.id}`}
+              className="grid gap-4 rounded-[18px] border border-[#1a1a1a] p-4 transition-colors hover:bg-[#1a1a1a]/5"
+            >
+              <p className="max-w-[8rem] text-[18px] leading-tight">{goal.name}</p>
+              <GoalRing name={goal.name} value={progressOf(goal)} />
+            </Link>
+          ))}
         </div>
       </section>
     </main>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function progressOf(goal: Goal): number {
+  if (goal.targetAmount <= 0) return 0;
+  return Math.min(100, Math.round((goal.savedSoFar / goal.targetAmount) * 100));
+}
+
+function GoalRing({ name, value }: { name: string; value: number }) {
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (value / 100) * circumference;
   return (
-    <Card size="sm">
-      <CardContent className="grid gap-1">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-xl font-medium tabular-nums">{value}</p>
-      </CardContent>
-    </Card>
+    <svg viewBox="0 0 72 72" className="mx-auto size-16" role="img" aria-label={`${name} is ${value}% saved`}>
+      <circle cx="36" cy="36" r={radius} fill="none" stroke="#e4e4e4" strokeWidth="8" />
+      <circle
+        cx="36"
+        cy="36"
+        r={radius}
+        fill="none"
+        stroke="#3dce3a"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        transform="rotate(-90 36 36)"
+      />
+    </svg>
   );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="tabular-nums">{value}</dd>
-    </div>
-  );
-}
-
-function badgeFor(status: GoalStatus): "default" | "destructive" | "secondary" {
-  if (status === "Needs attention") return "destructive";
-  if (status === "Ahead of plan") return "secondary";
-  return "default";
-}
-
-function monthYear(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
 }

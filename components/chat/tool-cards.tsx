@@ -53,7 +53,7 @@ export function ToolPart({ part }: { part: Part }) {
   if (part.state === "output-error") {
     return (
       <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-        {label} failed: {part.errorText}
+        {label} did not come through: {part.errorText}
       </div>
     );
   }
@@ -275,13 +275,13 @@ function CheckInSummary({ checkin }: { checkin: CheckIn }) {
       </div>
       {win && (
         <p>
-          <span className="font-medium">Going well. </span>
+          <span className="font-medium">One thing going well. </span>
           {win.title}. {win.detail}
         </p>
       )}
       {risk && (
         <p>
-          <span className="font-medium">Watch. </span>
+          <span className="font-medium">One thing to watch. </span>
           {risk.title}
         </p>
       )}

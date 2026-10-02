@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Wordmark } from "@/components/shell/wordmark";
 import { GOAL_TEMPLATES } from "@/data/goal-templates";
 import { SOCIAL_WEIGHTS, seededTransactions } from "@/data/mock-transactions";
 import { DEMO_TODAY } from "@/data/saver-personas";
@@ -122,8 +121,8 @@ export function GoalWizard() {
   };
 
   return (
-    <main className="mx-auto grid max-w-xl gap-6 px-4 py-10">
-      <Wordmark variant="gradient" />
+    <main className="mx-auto grid max-w-xl gap-6 bg-[url('/brand/image-mesh-gradient.jpg')] bg-cover px-4 py-10 text-[#1a1a1a]">
+      <p className="font-display text-[32px] leading-none">Nurture</p>
       <p className="text-[13px] text-[#1a1a1a]/60">
         {step + 1} of {STEPS.length} · {STEPS[step]}
       </p>
@@ -216,11 +215,11 @@ export function GoalWizard() {
           <button type="button" className="rounded-full bg-[#ede8e0] px-4 py-3" onClick={() => setStep((value) => value - 1)}>Back</button>
         )}
         {step < STEPS.length - 1 ? (
-          <button type="button" className="rounded-full bg-[#5cd719] px-4 py-3 text-white" onClick={() => setStep((value) => value + 1)} disabled={step === 1 && picked.length === 0}>
+          <button type="button" className="rounded-full bg-[#1a1a1a] px-4 py-3 text-white" onClick={() => setStep((value) => value + 1)} disabled={step === 1 && picked.length === 0}>
             Continue
           </button>
         ) : (
-          <button type="button" className="rounded-full bg-[#5cd719] px-4 py-3 text-white" onClick={finish} disabled={picked.length === 0}>
+          <button type="button" className="rounded-full bg-[#1a1a1a] px-4 py-3 text-white" onClick={finish} disabled={picked.length === 0}>
             See it come together
           </button>
         )}

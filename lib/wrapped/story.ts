@@ -2,12 +2,12 @@ import { transactionsForProfile } from "@/data/transactions";
 import { buildCheckIn } from "@/lib/checkin/build";
 import { compareDebtStrategies, repayableDebts } from "@/lib/finance/debt";
 import { gbp, months } from "@/lib/format";
-import { nextMilestone, type Milestone } from "@/lib/goals/milestones";
+import { distanceLeftLine, nextMilestone, type Milestone } from "@/lib/goals/milestones";
 import type { Goal } from "@/lib/goals/model";
 import type { HistorySnapshot } from "@/lib/history";
 import type { Profile } from "@/lib/profile";
 import { reviewSpending } from "@/lib/spending/insights";
-import { formatUkDate } from "@/lib/dates";
+import { formatUkDate, spokenDate } from "@/lib/dates";
 
 export type WrappedBeat = {
   id: "saved" | "best-month" | "shift" | "milestones" | "debt" | "next";
@@ -17,8 +17,14 @@ export type WrappedBeat = {
   body: string;
 };
 
+export type WrappedPin = {
+  name: string;
+  eta: string;
+};
+
 export type WrappedStory = {
   beats: WrappedBeat[];
+  pin: WrappedPin;
   share: {
     name: string;
     saved: string;
@@ -27,6 +33,8 @@ export type WrappedStory = {
     milestones: string;
     debt: string;
     next: string;
+    goal: string;
+    eta: string;
   };
 };
 
@@ -53,6 +61,7 @@ export function buildWrappedStory(input: {
   const crossed = milestones.filter((milestone) => milestone.pct >= 100);
   const upcoming = nextMilestone(milestones);
   const name = input.profile.name.trim() || "You";
+  const pin = pinFor(milestones, name);
 
   const savedBeat: WrappedBeat = {
     id: "saved",
@@ -86,25 +95,42 @@ export function buildWrappedStory(input: {
   const debtBeat = debtBeatFor(input.profile, milestones);
   const nextBeat: WrappedBeat = {
     id: "next",
-    kicker: "What is next",
-    title: checkin.nextAction.title,
-    figure: checkin.headline,
-    body: `${checkin.nextAction.detail} This is guidance, not regulated advice.`,
+    kicker: "Next chapter",
+    title: "Next chapter",
+    figure: upcoming ? distanceLeftLine(upcoming) : checkin.headline,
+    body: upcoming
+      ? `${name}, ${upcoming.label} is the next chapter. ${checkin.nextAction.detail}`
+      : `${name}, ${checkin.nextAction.detail} This is guidance, not regulated advice.`,
   };
 
   const beats = [savedBeat, bestBeat, shiftBeat, milestoneBeat, debtBeat, nextBeat];
   return {
     beats,
+    pin,
     share: {
       name,
       saved: savedBeat.figure,
       best: bestBeat.title,
       shift: shiftBeat.title,
-      milestones: milestoneBeat.figure,
+      milestones: String(crossed.length),
       debt: debtBeat.figure,
-      next: checkin.nextAction.title,
+      next: "Next chapter",
+      goal: pin.name,
+      eta: pin.eta,
     },
   };
+}
+
+function pinFor(milestones: Milestone[], name: string): WrappedPin {
+  const upcoming = nextMilestone(milestones);
+  const marker = upcoming ?? milestones[milestones.length - 1];
+  if (!marker) return { name, eta: "date still open" };
+  const eta = marker.projectedDate
+    ? `around ${spokenDate(marker.projectedDate)}`
+    : marker.crossedAt
+      ? `reached ${spokenDate(marker.crossedAt)}`
+      : "date still open";
+  return { name: marker.label, eta };
 }
 
 function milestoneBeatFor(crossed: Milestone[], upcoming: Milestone | undefined): WrappedBeat {
@@ -113,9 +139,9 @@ function milestoneBeatFor(crossed: Milestone[], upcoming: Milestone | undefined)
       id: "milestones",
       kicker: "Milestones",
       title: upcoming ? `${upcoming.label} is next` : "No markers yet",
-      figure: upcoming ? `${upcoming.pct}%` : "0",
+      figure: upcoming ? distanceLeftLine(upcoming) : "0",
       body: upcoming
-        ? `${gbp(upcoming.current)} of ${gbp(upcoming.target)} so far${upcoming.projectedDate ? `, around ${formatUkDate(upcoming.projectedDate)} at the current pace` : ""}.`
+        ? `${gbp(upcoming.current)} of ${gbp(upcoming.target)} so far${upcoming.projectedDate ? `, around ${spokenDate(upcoming.projectedDate)} at the current pace` : ""}.`
         : "Markers appear from the plan as soon as there is a profile.",
     };
   }

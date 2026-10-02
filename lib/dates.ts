@@ -30,3 +30,11 @@ export function formatUkDate(iso: string): string {
     year: "numeric",
   });
 }
+
+const SPOKEN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Day and short month, for example "2 Nov". */
+export function spokenDate(iso: string): string {
+  const [, month, day] = iso.split("-").map(Number);
+  return `${day} ${SPOKEN_MONTHS[month - 1] ?? ""}`;
+}

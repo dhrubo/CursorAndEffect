@@ -38,17 +38,19 @@ export default function WrappedPage() {
   const story = storyResult.story;
 
   if (!loaded || (profile && !client)) {
-    return <div className="mx-auto h-[70vh] w-full max-w-3xl animate-pulse px-4 py-10" />;
+    return <div className="h-[calc(100dvh-3.5rem-5rem)] w-full animate-pulse bg-nuture-lime/40 sm:h-[calc(100dvh-3.5rem)]" />;
   }
 
   if (!profile) {
     return (
       <div className="mx-auto grid w-full max-w-xl gap-4 px-4 py-20 text-center">
-        <h1 className="text-2xl font-semibold">Nothing to wrap yet</h1>
-        <p className="text-muted-foreground">Load Priya, Sam or Mark, or enter your own numbers, and this deck fills in from the plan.</p>
+        <h1 className="font-serif text-[2rem] leading-tight">Nothing to wrap yet</h1>
+        <p className="text-[15px] text-nuture-ink/60">
+          Load Priya, Sam or Mark, or enter your own numbers, and this story fills in from the plan.
+        </p>
         <div>
-          <Button asChild>
-            <Link href="/">Get started</Link>
+          <Button asChild className="min-h-11 rounded-full bg-nuture-ink px-5 text-white hover:bg-nuture-ink/90">
+            <Link href="/">Back to home</Link>
           </Button>
         </div>
       </div>
@@ -58,11 +60,11 @@ export default function WrappedPage() {
   if (storyResult.error || !story) {
     return (
       <div className="mx-auto grid w-full max-w-xl gap-4 px-4 py-20 text-center">
-        <h1 className="text-2xl font-semibold">Wrapped didn&apos;t load</h1>
-        <p className="text-muted-foreground">The story couldn&apos;t be built from the numbers in this browser.</p>
+        <h1 className="font-serif text-[2rem] leading-tight">Wrapped didn&apos;t load</h1>
+        <p className="text-[15px] text-nuture-ink/60">The story couldn&apos;t be built from the numbers in this browser.</p>
         <div>
-          <Button asChild>
-            <Link href="/plan">Back to the plan</Link>
+          <Button asChild className="min-h-11 rounded-full bg-nuture-ink px-5 text-white hover:bg-nuture-ink/90">
+            <Link href="/plan#goals">Back to goals</Link>
           </Button>
         </div>
       </div>
@@ -87,6 +89,7 @@ function Deck({
   const ignoreClickRef = useRef(false);
   const beat = story.beats[Math.min(index, story.beats.length - 1)];
   const share = `/wrapped/share?${new URLSearchParams(story.share).toString()}`;
+  const last = index >= story.beats.length - 1;
 
   const go = (next: number) => setIndex(Math.max(0, Math.min(story.beats.length - 1, next)));
 
@@ -104,11 +107,10 @@ function Deck({
   }, [setIndex, story.beats.length]);
 
   return (
-    <div className="relative mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-3xl flex-col px-4 py-6">
-      <Celebration active={beat.id === "milestones" || beat.id === "next"} />
+    <div className="fixed inset-x-0 top-14 bottom-20 z-10 flex flex-col sm:static sm:inset-auto sm:z-auto sm:mx-auto sm:min-h-[calc(100dvh-3.5rem)] sm:w-full sm:max-w-3xl sm:px-4 sm:py-6">
       <div
         className={cn(
-          "relative flex flex-1 flex-col justify-between rounded-3xl bg-primary px-6 py-8 text-primary-foreground shadow-lg sm:px-10",
+          "relative flex min-h-0 flex-1 flex-col justify-between bg-nuture-lime px-6 py-8 text-white sm:rounded-[20px] sm:px-10",
           !reduce && "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300",
         )}
         key={beat.id}
@@ -133,47 +135,76 @@ function Deck({
           touchXRef.current = null;
         }}
       >
-        <div className="flex items-center justify-between gap-3 text-sm text-primary-foreground/80">
-          <p>{beat.kicker}</p>
-          <p>
-            {index + 1} of {story.beats.length}
+        <Celebration active={beat.id === "milestones" || beat.id === "next"} />
+        <div className="relative grid gap-3">
+          <p className="text-[15px] text-white/90">
+            {story.pin.name} · {story.pin.eta}
           </p>
+          <div className="flex items-center justify-between gap-3 text-[13px] text-white/75">
+            <p>{beat.kicker}</p>
+            <p>
+              {index + 1} of {story.beats.length}
+            </p>
+          </div>
         </div>
-        <div className="grid gap-3">
-          <p className="text-5xl font-semibold tracking-tight text-balance sm:text-6xl">{beat.figure}</p>
-          <h1 className="text-2xl font-semibold text-balance sm:text-3xl">{beat.title}</h1>
-          <p className="max-w-xl text-base text-primary-foreground/90 text-pretty sm:text-lg">{beat.body}</p>
+        <div className="relative grid gap-3">
+          <p className="font-serif text-[2.5rem] leading-[1.15] text-balance sm:text-6xl">{beat.figure}</p>
+          <h1 className="text-[22px] font-medium text-balance">{beat.title}</h1>
+          <p className="max-w-xl text-[15px] text-white/90 text-pretty sm:text-[17px]">{beat.body}</p>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3" onClick={(event) => event.stopPropagation()}>
+        <div className="relative flex flex-wrap items-center justify-between gap-3" onClick={(event) => event.stopPropagation()}>
           <div className="flex gap-1.5" aria-hidden>
             {story.beats.map((item, itemIndex) => (
               <span
                 key={item.id}
-                className={cn("h-1.5 w-6 rounded-full", itemIndex === index ? "bg-primary-foreground" : "bg-primary-foreground/35")}
+                className={cn("h-1.5 w-6 rounded-full", itemIndex === index ? "bg-white" : "bg-white/35")}
               />
             ))}
           </div>
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={() => go(index - 1)} disabled={index === 0}>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-11 rounded-full bg-white/20 px-5 text-white hover:bg-white/30"
+              onClick={() => go(index - 1)}
+              disabled={index === 0}
+            >
               Back
             </Button>
-            {index < story.beats.length - 1 ? (
-              <Button type="button" variant="secondary" size="sm" onClick={() => go(index + 1)}>
-                Next
-              </Button>
+            {last ? (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-h-11 rounded-full bg-white px-5 text-nuture-ink hover:bg-white/90"
+                  asChild
+                >
+                  <Link href="/plan#goals">See goals</Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-h-11 rounded-full bg-white/20 px-5 text-white hover:bg-white/30"
+                  asChild
+                >
+                  <a href={share} target="_blank" rel="noreferrer">
+                    Share card
+                  </a>
+                </Button>
+              </>
             ) : (
-              <Button type="button" variant="secondary" size="sm" asChild>
-                <a href={share} target="_blank" rel="noreferrer">
-                  Share card
-                </a>
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-11 rounded-full bg-white px-5 text-nuture-ink hover:bg-white/90"
+                onClick={() => go(index + 1)}
+              >
+                Next
               </Button>
             )}
           </div>
         </div>
       </div>
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        Click either side, swipe, or use the arrow keys. Guidance, not regulated advice.
-      </p>
     </div>
   );
 }

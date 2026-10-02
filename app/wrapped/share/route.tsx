@@ -15,7 +15,9 @@ export async function GET(request: Request) {
   const shift = clip(url.searchParams.get("shift"), "Spending held steady");
   const milestones = clip(url.searchParams.get("milestones"), "0");
   const debt = clip(url.searchParams.get("debt"), "£0");
-  const next = clip(url.searchParams.get("next"), "Keep going");
+  const next = clip(url.searchParams.get("next"), "Next chapter");
+  const goal = clip(url.searchParams.get("goal"), "Your goal");
+  const eta = clip(url.searchParams.get("eta"), "date still open");
 
   return new ImageResponse(
     (
@@ -26,15 +28,18 @@ export async function GET(request: Request) {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          backgroundColor: "#0f766e",
-          color: "#f8fafc",
+          backgroundColor: "#5CD719",
+          color: "#ffffff",
           padding: "56px",
           fontFamily: "sans-serif",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 28 }}>
-          <div style={{ display: "flex" }}>NextPound</div>
-          <div style={{ display: "flex", opacity: 0.8 }}>{name}</div>
+          <div style={{ display: "flex", fontFamily: "Georgia, serif", fontSize: 48 }}>Nuture</div>
+          <div style={{ display: "flex", opacity: 0.9 }}>{name}</div>
+        </div>
+        <div style={{ display: "flex", fontSize: 32 }}>
+          {goal} · {eta}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", fontSize: 28, opacity: 0.85 }}>Wrapped</div>
@@ -53,7 +58,7 @@ export async function GET(request: Request) {
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 26 }}>
           <div style={{ display: "flex" }}>{milestones} milestones</div>
           <div style={{ display: "flex" }}>{debt} debt</div>
-          <div style={{ display: "flex" }}>Next: {next}</div>
+          <div style={{ display: "flex" }}>{next}</div>
         </div>
       </div>
     ),

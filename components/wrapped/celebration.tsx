@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { hexToRgba, spawnBurst, stepParticle, type Particle } from "@/lib/motion/particles";
 import { usePrefersReducedMotion } from "@/lib/motion/use-reduced-motion";
 
-const COLOURS = ["#0f766e", "#d97706", "#047857", "#b45309", "#0e7490"];
+const COLOURS = ["#ffffff", "#c8e000", "#f7f5f2", "#1a1a1a"];
 
 export function Celebration({ active }: { active: boolean }) {
   const reduce = usePrefersReducedMotion();
