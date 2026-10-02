@@ -288,44 +288,44 @@ export function ArrivalFlow() {
   }
 
   if (step === "connect") {
+    const accounts = SOURCES.flatMap((source) =>
+      (connections[source.id] ? sourceFindings(transcript, source.id) : source.items).map((name) => ({
+        source: source.id,
+        name,
+      })),
+    );
     return (
-      <main className="mx-auto grid max-w-xl gap-6 px-4 py-8 text-white">
-        <Wordmark variant="white" className="h-8" />
-        <div className="grid gap-2">
-          <h1 className="font-display text-[32px] leading-tight font-normal">Connect what you already have</h1>
-          <p className="text-[15px] text-white/80">These are sample connections for the demo. Nothing leaves this browser.</p>
-        </div>
-        {SOURCES.map((source) => (
-          <section key={source.id} className="frosted grid gap-3 rounded-2xl px-4 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[18px]">{source.title}</h2>
-              {connections[source.id] ? (
-                <span className="text-[14px] text-white/80">Connected</span>
-              ) : (
+      <main className="mx-auto grid min-h-[78vh] max-w-xl content-start gap-6 px-5 py-12 text-[#1a1a1a]">
+        <h1 className="text-center text-[13px] tracking-[0.22em] uppercase">Connect your accounts</h1>
+        <ul className="grid gap-3">
+          {accounts.map((account) => {
+            const added = connections[account.source];
+            return (
+              <li
+                key={`${account.source}-${account.name}`}
+                className="flex items-center justify-between gap-4 rounded-[18px] border border-[#1a1a1a] px-4 py-3"
+              >
+                <p className="max-w-[9rem] text-[17px] leading-tight">{account.name}</p>
                 <button
                   type="button"
-                  className="rounded-full bg-white px-4 py-2 text-[15px] text-[#1a1a1a] disabled:opacity-60"
-                  disabled={pending !== null}
-                  onClick={() => connect(source.id)}
+                  className="rounded-full bg-[#1a1a1a] px-7 py-2 text-[16px] text-white disabled:opacity-70"
+                  disabled={added || pending !== null}
+                  aria-pressed={added}
+                  onClick={() => connect(account.source)}
                 >
-                  {pending === source.id ? "Discovering…" : "Connect"}
+                  {pending === account.source ? "Adding" : added ? "Added" : "Add"}
                 </button>
-              )}
-            </div>
-            <ul className="grid gap-1 text-[15px] text-white/80">
-              {(connections[source.id] ? sourceFindings(transcript, source.id) : source.items).map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </section>
-        ))}
-        <div className="flex flex-wrap gap-3">
-          <button type="button" className="rounded-full px-5 py-3 text-[17px] text-white/80" onClick={() => setStep("confirm")}>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <button type="button" className="rounded-full px-5 py-3 text-[17px]" onClick={() => setStep("confirm")}>
             Go back
           </button>
           <button
             type="button"
-            className="frosted rounded-full px-5 py-3 text-[17px] disabled:opacity-50"
+            className="rounded-full bg-[#1a1a1a] px-5 py-3 text-[17px] text-white disabled:opacity-40"
             disabled={!Object.values(connections).some(Boolean)}
             onClick={() => setStep("review")}
           >
