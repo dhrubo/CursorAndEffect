@@ -7,6 +7,7 @@ import { PERSONAS } from "@/data/personas";
 import { BrandStar } from "@/components/shell/brand-mark";
 import { Wordmark } from "@/components/shell/wordmark";
 import { stateFromLegacyProfile, useSaver } from "@/lib/saver/use-saver-state";
+import { saveProfile } from "@/lib/use-profile";
 import { DEMO_TODAY } from "@/data/saver-personas";
 
 export default function SplashPage() {
@@ -52,8 +53,9 @@ export default function SplashPage() {
             key={persona.id}
             type="button"
             onClick={() => {
+              saveProfile(persona.profile);
               save(stateFromLegacyProfile(persona.profile, DEMO_TODAY));
-              router.push("/money-health");
+              router.push("/plan");
             }}
             className="rounded-[20px] bg-white/15 px-4 py-4 text-left"
           >

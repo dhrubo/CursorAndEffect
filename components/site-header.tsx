@@ -4,14 +4,13 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HouseIcon, TargetIcon } from "lucide-react";
-import { AssistantDock } from "@/components/chat/assistant-dock";
+import { AssistantDock, CoachTrigger } from "@/components/chat/assistant-dock";
 import { useAssistant } from "@/components/chat/assistant-provider";
-import { FourPointStar } from "@/components/four-point-star";
 import { cn } from "cn";
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { open, setOpen } = useAssistant();
+  const { open } = useAssistant();
   const goalsActive = pathname.startsWith("/plan");
   const homeActive = pathname === "/";
 
@@ -20,7 +19,7 @@ export function SiteHeader() {
       <header className="sticky top-0 z-20 bg-nuture-paper">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3 px-4">
           <Link href="/" className="font-serif text-2xl leading-none text-nuture-ink">
-            Nuture
+            Nurture
           </Link>
           <nav className="hidden items-center gap-5 sm:flex" aria-label="Primary">
             <HeaderLink href="/plan#goals" active={goalsActive}>
@@ -29,7 +28,7 @@ export function SiteHeader() {
             <HeaderLink href="/" active={homeActive}>
               Home
             </HeaderLink>
-            <AssistantDock />
+            <CoachTrigger appearance="pill" />
           </nav>
         </div>
       </header>
@@ -43,20 +42,9 @@ export function SiteHeader() {
         <BottomLink href="/" label="Home" active={homeActive && !open}>
           <HouseIcon className="size-6" strokeWidth={1.75} />
         </BottomLink>
-        <button
-          type="button"
-          className={cn(
-            "flex min-h-11 min-w-16 flex-1 flex-col items-center justify-center gap-1 text-[13px]",
-            open ? "text-nuture-ink" : "text-[#8a8680]",
-          )}
-          aria-expanded={open}
-          aria-label="Coach"
-          onClick={() => setOpen(true)}
-        >
-          <FourPointStar className="text-xl" />
-          Coach
-        </button>
+        <CoachTrigger appearance="tab" />
       </nav>
+      <AssistantDock />
     </>
   );
 }
