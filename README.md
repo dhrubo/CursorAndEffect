@@ -7,8 +7,9 @@ shows where your next pound does the most good across **debt, savings, ISAs, cur
 match and your mortgage**, all in one plan.
 
 - A deterministic **rules engine** follows the widely used UK priority order and splits any amount step by step.
-- A **Grok-powered chat guide** (xAI `grok-4.7`) explains trade-offs and runs what-ifs. It never does its own
-  maths: every figure comes from the same calculators as the dashboard, called as tools and shown as cards.
+- A **chat guide** explains trade-offs and runs what-ifs. It never does its own maths: every figure comes from
+  the same calculators as the dashboard, called as tools and shown as cards. With `XAI_API_KEY` that guide is
+  Grok. Without a key, the same screen uses a scripted reply so the demo still runs.
 - Everything is stored in the browser (`localStorage`). There is no database and no login.
 
 > Guidance, not regulated financial advice. All providers and rates are fictional and illustrative.
@@ -24,8 +25,8 @@ cp .env.example .env.local   # then paste your key from https://console.x.ai
 npm run dev                  # http://localhost:3000
 ```
 
-The dashboard works without a key. Only the chat guide needs `XAI_API_KEY`. You can set `XAI_MODEL` to use
-another Grok model (default `grok-4.7`).
+The plan, milestones, Wrapped story and scripted chat all work without a key. Set `XAI_API_KEY` to talk to
+Grok instead of the scripted replies. You can set `XAI_MODEL` to use another Grok model (default `grok-4.7`).
 
 | Script | What it does |
 | --- | --- |

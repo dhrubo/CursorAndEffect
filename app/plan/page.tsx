@@ -1,10 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PencilIcon, RotateCcwIcon } from "lucide-react";
+import { transactionsForProfile } from "@/data/transactions";
+import { CheckInCard } from "@/components/checkin/checkin-card";
+import { useAssistant } from "@/components/chat/assistant-provider";
 import { ChatPanel } from "@/components/chat/chat-panel";
+import { GoalForm } from "@/components/goals/goal-form";
+import { MilestoneTrack } from "@/components/goals/milestone-track";
 import { AllocationView } from "@/components/plan/allocation-view";
 import { SignpostList, WarningList } from "@/components/plan/alerts";
 import { DebtPayoffChart, DebtStrategySummary } from "@/components/plan/debt-view";
@@ -15,11 +20,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { buildCheckIn } from "@/lib/checkin/build";
 import { compareDebtStrategies, repayableDebts } from "@/lib/finance/debt";
 import { buildPlan } from "@/lib/finance/ladder";
 import { compareOverpayVsSave, remortgageOptions } from "@/lib/finance/mortgage";
+import { deriveMilestones } from "@/lib/goals/milestones";
 import { gbp, pct } from "@/lib/format";
+import { ensureHistory } from "@/lib/history";
 import type { Profile } from "@/lib/profile";
+import { freeableMonthly, suggestSpendingChanges } from "@/lib/spending/insights";
+import { useGoals } from "@/lib/use-goals";
+import { useHistory } from "@/lib/use-history";
 import { useProfile } from "@/lib/use-profile";
 
 export default function PlanPage() {
@@ -67,6 +78,9 @@ function PlanView({
 }) {
   const [amountText, setAmountText] = useState(String(profile.nextAmount));
   const amount = Math.max(0, Number(amountText) || 0);
+  const { setProfileOverride } = useAssistant();
+  const { goals, loaded: goalsLoaded, save: saveGoals } = useGoals(profile.name);
+  const { snapshots: history, ready: historyReady } = useHistory(profile.name);
 
   const plan = useMemo(() => buildPlan(profile, amount), [profile, amount]);
   const debts = useMemo(
@@ -79,6 +93,35 @@ function PlanView({
   );
   const remortgage = useMemo(() => remortgageOptions(profile), [profile]);
   const chatProfile = useMemo(() => ({ ...profile, nextAmount: amount }), [profile, amount]);
+  const transactions = useMemo(() => transactionsForProfile(profile), [profile]);
+  const freed = useMemo(
+    () => freeableMonthly(suggestSpendingChanges(profile, transactions)),
+    [profile, transactions],
+  );
+  const milestones = useMemo(
+    () =>
+      deriveMilestones({
+        profile,
+        plan: buildPlan(profile),
+        goals,
+        history: history ?? undefined,
+        freeableMonthly: freed,
+      }),
+    [profile, goals, history, freed],
+  );
+  const checkin = useMemo(
+    () => (historyReady ? buildCheckIn({ profile, goals, history, transactions }) : null),
+    [historyReady, profile, goals, history, transactions],
+  );
+
+  useEffect(() => {
+    setProfileOverride(chatProfile);
+    return () => setProfileOverride(null);
+  }, [chatProfile, setProfileOverride]);
+
+  useEffect(() => {
+    ensureHistory(profile, buildPlan(profile));
+  }, [profile]);
 
   const m = plan.metrics;
   const title = profile.name ? `${profile.name}'s money plan` : "Your money plan";
@@ -105,6 +148,8 @@ function PlanView({
           </div>
         </div>
 
+        {checkin ? <CheckInCard checkin={checkin} /> : <Card className="h-32 animate-pulse" />}
+
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <StatCard label="Spare each month" value={gbp(m.monthlySurplus)} tone={m.monthlySurplus < 0 ? "bad" : undefined}>
             after {gbp(m.monthlyOutgoings)} of essentials and repayments
@@ -122,6 +167,26 @@ function PlanView({
             best cash rate after tax {pct(m.bestCashRateAfterTaxPct)}
           </StatCard>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Goals and milestones</CardTitle>
+            <CardDescription>
+              Filled markers are reached. The next one is highlighted with a date.{" "}
+              <Link href="/wrapped" className="underline">
+                Open Wrapped
+              </Link>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+            <MilestoneTrack milestones={milestones} />
+            {goalsLoaded ? (
+              <GoalForm goals={goals} onChange={saveGoals} />
+            ) : (
+              <div className="h-40 animate-pulse rounded-lg bg-muted" />
+            )}
+          </CardContent>
+        </Card>
 
         <Card className="ring-primary/30">
           <CardHeader>

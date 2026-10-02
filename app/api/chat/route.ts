@@ -1,4 +1,5 @@
 import { xai } from "@ai-sdk/xai";
+import { z } from "zod";
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -6,28 +7,45 @@ import {
   streamText,
   toUIMessageStream,
 } from "ai";
+import { mockChatResponse } from "@/lib/ai/mock";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { createTools, type AppUIMessage } from "@/lib/ai/tools";
+import { GoalSchema } from "@/lib/goals/model";
+import { HistorySnapshotSchema } from "@/lib/history";
 import { ProfileSchema } from "@/lib/profile";
 
 export const maxDuration = 60;
 
-export async function POST(req: Request) {
-  if (!process.env.XAI_API_KEY) {
-    return Response.json(
-      { error: "The chat guide needs an xAI API key. Add XAI_API_KEY to .env.local and restart the dev server." },
-      { status: 500 },
-    );
-  }
+export async function GET() {
+  return Response.json({ scripted: !process.env.XAI_API_KEY });
+}
 
-  const body = (await req.json()) as { messages?: AppUIMessage[]; profile?: unknown };
-  const profile = ProfileSchema.safeParse(body.profile);
-  if (!profile.success || !Array.isArray(body.messages)) {
+export async function POST(req: Request) {
+  let body: { messages?: AppUIMessage[]; profile?: unknown; goals?: unknown; history?: unknown };
+  try {
+    body = (await req.json()) as typeof body;
+  } catch {
     return Response.json({ error: "Invalid request: a valid profile and messages are required." }, { status: 400 });
   }
 
+  const profile = ProfileSchema.safeParse(body.profile);
+  const goals = z.array(GoalSchema).safeParse(body.goals ?? []);
+  const history = z.array(HistorySnapshotSchema).safeParse(body.history ?? []);
+  if (!profile.success || !Array.isArray(body.messages) || !goals.success || !history.success) {
+    return Response.json({ error: "Invalid request: a valid profile and messages are required." }, { status: 400 });
+  }
+
+  if (!process.env.XAI_API_KEY) {
+    return mockChatResponse({
+      profile: profile.data,
+      messages: body.messages,
+      goals: goals.data,
+      history: history.data,
+    });
+  }
+
   const modelId = process.env.XAI_MODEL || "grok-4.7";
-  const tools = createTools(profile.data);
+  const tools = createTools(profile.data, { goals: goals.data, history: history.data });
   const result = streamText({
     model: xai(modelId),
     instructions: buildSystemPrompt(profile.data),

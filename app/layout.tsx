@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
-import { PoundSterlingIcon } from "lucide-react";
+import { AssistantProvider } from "@/components/chat/assistant-provider";
+import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,25 +27,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-muted/40">
-        <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur">
-          <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4">
-            <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <PoundSterlingIcon className="size-4" />
-              </span>
-              NextPound
-            </Link>
-            <nav className="flex items-center gap-4 text-sm text-muted-foreground">
-              <Link href="/#profile" className="hover:text-foreground">
-                Your numbers
-              </Link>
-              <Link href="/plan" className="hover:text-foreground">
-                Your plan
-              </Link>
-            </nav>
-          </div>
-        </header>
-        <main className="flex-1">{children}</main>
+        <AssistantProvider>
+          <SiteHeader />
+          <main className="flex-1">{children}</main>
         <footer className="border-t bg-background">
           <div className="mx-auto grid w-full max-w-7xl gap-2 px-4 py-6 text-xs text-muted-foreground">
             <p>
@@ -71,6 +55,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </p>
           </div>
         </footer>
+        </AssistantProvider>
       </body>
     </html>
   );

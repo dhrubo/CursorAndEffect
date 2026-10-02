@@ -1,10 +1,21 @@
 import { tool, type InferUITools, type UIDataTypes, type UIMessage } from "ai";
 import { z } from "zod";
+import { transactionsForProfile } from "@/data/transactions";
+import { buildCheckIn } from "@/lib/checkin/build";
 import { compareDebtStrategies, repayableDebts } from "@/lib/finance/debt";
 import { buildPlan } from "@/lib/finance/ladder";
 import { compareOverpayVsSave, remortgageOptions } from "@/lib/finance/mortgage";
 import { findSavingsProducts } from "@/lib/finance/savings";
+import type { Goal } from "@/lib/goals/model";
+import type { HistorySnapshot } from "@/lib/history";
+import { reviewSpending, suggestSpendingChanges } from "@/lib/spending/insights";
 import type { Profile } from "@/lib/profile";
+
+export type ToolContext = {
+  goals?: Goal[];
+  history?: HistorySnapshot[];
+  today?: Date;
+};
 
 const amount = z.number().min(0).max(10_000_000);
 
@@ -12,7 +23,7 @@ const amount = z.number().min(0).max(10_000_000);
  * Tools close over the validated profile, so the model only supplies scenario inputs
  * and can never misstate the user's own numbers.
  */
-export function createTools(profile: Profile) {
+export function createTools(profile: Profile, context: ToolContext = {}) {
   return {
     allocate_next_amount: tool({
       description:
@@ -77,6 +88,35 @@ export function createTools(profile: Profile) {
       execute: async () =>
         remortgageOptions(profile) ??
         ({ error: "The user hasn't added a mortgage to their profile." } as const),
+    }),
+
+    get_checkin: tool({
+      description:
+        "How the user is actually doing: standing, what changed since the last saved month, wins, risks, milestones, and the single most useful next action. Call this first when they ask how they are doing. Every figure in the reply must come from this result or the profile.",
+      inputSchema: z.object({}),
+      execute: async () =>
+        buildCheckIn({
+          profile,
+          goals: context.goals,
+          history: context.history,
+          today: context.today,
+        }),
+    }),
+
+    review_spending: tool({
+      description:
+        "Review the six-month spending feed: monthly totals, category changes versus the previous month, recurring payments, and unused subscriptions. Call this when the user asks what changed in their spending.",
+      inputSchema: z.object({}),
+      execute: async () => reviewSpending(transactionsForProfile(profile)),
+    }),
+
+    suggest_spending_changes: tool({
+      description:
+        "Suggest up to three spending changes. Each one includes freeableMonthly and the effect on the priority ladder (spare cash, emergency fund timing, debt-free date, and where one month of the cut would go). Name what you noticed, ask if it matches their intent, then use progressLine rather than doing your own maths.",
+      inputSchema: z.object({}),
+      execute: async () => ({
+        suggestions: suggestSpendingChanges(profile, transactionsForProfile(profile)),
+      }),
     }),
   };
 }

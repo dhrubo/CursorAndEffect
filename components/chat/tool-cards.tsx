@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import { CalculatorIcon, LoaderCircleIcon } from "lucide-react";
 import type { AppUIMessage } from "@/lib/ai/tools";
+import type { CheckIn } from "@/lib/checkin/build";
 import type { SavingsSearch } from "@/lib/finance/savings";
 import { gbp, pct } from "@/lib/format";
+import type { SpendingReview, SpendingSuggestion } from "@/lib/spending/insights";
 import { AllocationView } from "@/components/plan/allocation-view";
 import { DebtStrategySummary } from "@/components/plan/debt-view";
 import { OverpayVsSaveView, RemortgageView } from "@/components/plan/mortgage-view";
@@ -16,6 +18,9 @@ const TOOL_LABELS: Record<string, string> = {
   "tool-compare_overpay_vs_save": "Comparing overpaying vs saving",
   "tool-find_savings_products": "Searching savings products",
   "tool-compare_remortgage_options": "Comparing remortgage deals",
+  "tool-get_checkin": "Checking how you're doing",
+  "tool-review_spending": "Reviewing six months of spending",
+  "tool-suggest_spending_changes": "Working out what spending could free up",
 };
 
 export function isToolPart(part: Part): boolean {
@@ -73,6 +78,24 @@ export function ToolPart({ part }: { part: Part }) {
           {"error" in part.output ? <Muted>{part.output.error}</Muted> : <RemortgageView result={part.output} limit={3} />}
         </Shell>
       );
+    case "tool-get_checkin":
+      return (
+        <Shell title="How you're doing">
+          <CheckInSummary checkin={part.output} />
+        </Shell>
+      );
+    case "tool-review_spending":
+      return (
+        <Shell title="Spending review">
+          <SpendingReviewCard review={part.output} />
+        </Shell>
+      );
+    case "tool-suggest_spending_changes":
+      return (
+        <Shell title="Spending changes">
+          <SpendingSuggestions suggestions={part.output.suggestions} />
+        </Shell>
+      );
     default:
       return null;
   }
@@ -102,6 +125,84 @@ const GOAL_LABELS: Record<SavingsSearch["goal"], string> = {
   house: "First home deposit",
   any: "All accounts",
 };
+
+const STANDING_LABEL: Record<CheckIn["standing"], string> = {
+  comfortable: "Solid spot",
+  steady: "Steady",
+  stretched: "Tight month",
+};
+
+function CheckInSummary({ checkin }: { checkin: CheckIn }) {
+  const win = checkin.wins[0];
+  const risk = checkin.risks[0];
+  return (
+    <div className="grid gap-2">
+      <div className="flex items-center gap-2">
+        <Badge>{STANDING_LABEL[checkin.standing]}</Badge>
+        <p className="font-medium">{checkin.headline}</p>
+      </div>
+      {win && (
+        <p>
+          <span className="font-medium">Going well. </span>
+          {win.title}. {win.detail}
+        </p>
+      )}
+      {risk && (
+        <p>
+          <span className="font-medium">Watch. </span>
+          {risk.title}
+        </p>
+      )}
+      <p className="text-muted-foreground">{checkin.nextAction.title}</p>
+    </div>
+  );
+}
+
+function SpendingReviewCard({ review }: { review: SpendingReview }) {
+  return (
+    <div className="grid gap-2">
+      <p className="text-xs text-muted-foreground">
+        Latest month {review.latestMonth || "n/a"}
+        {review.previousMonth ? ` compared with ${review.previousMonth}` : ""}. Spent {gbp(review.totalLatest)}, of which{" "}
+        {gbp(review.discretionaryLatest)} was discretionary.
+      </p>
+      {review.topMovers.length === 0 && <Muted>No category movement to show yet.</Muted>}
+      {review.topMovers.map((mover) => (
+        <div key={mover.category} className="flex items-baseline justify-between gap-2">
+          <p>{mover.label}</p>
+          <p className="tabular-nums text-muted-foreground">
+            {mover.delta > 0 ? "+" : ""}
+            {gbp(mover.delta)}
+          </p>
+        </div>
+      ))}
+      {review.unusedSubscriptions.length > 0 && (
+        <p>
+          Unused {review.unusedSubscriptions.length === 1 ? "subscription" : "subscriptions"}:{" "}
+          {review.unusedSubscriptions.map((row) => `${row.merchant} (${gbp(row.typicalAmount)} a month)`).join(", ")}.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SpendingSuggestions({ suggestions }: { suggestions: SpendingSuggestion[] }) {
+  if (suggestions.length === 0) return <Muted>No clear cut stood out in the feed.</Muted>;
+  return (
+    <div className="grid gap-2">
+      {suggestions.map((suggestion) => (
+        <div key={suggestion.id} className="rounded-lg border p-2.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="font-medium">{suggestion.title}</p>
+            <p className="shrink-0 tabular-nums">{gbp(suggestion.freeableMonthly)} / month</p>
+          </div>
+          <p className="text-xs text-muted-foreground">{suggestion.detail}</p>
+          <p className="mt-1 text-xs">{suggestion.planEffect.progressLine}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function SavingsMatches({ search }: { search: SavingsSearch }) {
   const top = search.matches.filter((m) => m.eligible).slice(0, 4);
