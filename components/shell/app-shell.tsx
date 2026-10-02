@@ -14,9 +14,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <CoachProvider>
       <div className={`flex min-h-full flex-col ${mesh ? "mesh-screen" : "bg-background text-foreground"}`}>
         <div className="flex-1 pb-28">{children}</div>
-        <footer className={`px-4 pb-24 text-[11px] ${mesh ? "text-white/75" : "text-muted-foreground"}`}>
+        <footer className={`px-4 pb-24 text-[11px] ${mesh && pathname !== "/" ? "text-white/75" : "text-[#1a1a1a]/70"}`}>
           <p>
-            <strong className={mesh ? "text-white" : "text-foreground"}>Guidance, not advice.</strong> Nurture helps
+            <strong className={mesh && pathname !== "/" ? "text-white" : "text-[#1a1a1a]"}>Guidance, not advice.</strong> Nurture helps
             you think through saving. It is not regulated financial advice. Products and rates are fictional.
           </p>
         </footer>

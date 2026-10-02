@@ -187,8 +187,8 @@ export function ArrivalFlow() {
 
   if (step === "talk") {
     return (
-      <main className="mx-auto flex min-h-[78vh] max-w-xl flex-col gap-4 px-4 py-8 text-white">
-        <Wordmark variant="white" className="h-8" />
+      <main className="mx-auto flex min-h-[78vh] max-w-xl flex-col gap-4 px-4 py-8 text-[#1a1a1a]">
+        <Wordmark variant="white" className="h-8 !text-[#1a1a1a]" />
         <h1 className="font-display text-[32px] leading-tight font-normal">Your plans</h1>
         <div className="grid flex-1 content-start gap-3">
           {lines.map((line, index) => (
@@ -196,7 +196,7 @@ export function ArrivalFlow() {
               key={`${line.role}-${index}`}
               className={
                 line.role === "coach"
-                  ? "max-w-[90%] rounded-2xl bg-white/15 px-4 py-3 text-[16px] leading-relaxed"
+                  ? "max-w-[90%] rounded-2xl border border-[#1a1a1a]/20 bg-white/40 px-4 py-3 text-[16px] leading-relaxed"
                   : "ml-auto max-w-[90%] rounded-2xl bg-white px-4 py-3 text-[16px] leading-relaxed text-[#1a1a1a]"
               }
             >
@@ -219,7 +219,7 @@ export function ArrivalFlow() {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Type, or speak"
-            className="min-w-0 flex-1 rounded-full border border-white/70 bg-white/15 px-4 py-3 text-[16px] outline-none placeholder:text-white/60"
+            className="min-w-0 flex-1 rounded-full border border-[#1a1a1a]/30 bg-white/40 px-4 py-3 text-[16px] text-[#1a1a1a] outline-none placeholder:text-[#1a1a1a]/50"
           />
           <button
             type="button"
@@ -234,7 +234,7 @@ export function ArrivalFlow() {
             <SendIcon className="size-5" />
           </button>
         </form>
-        {voiceNote && <p className="text-[14px] text-white/80">{voiceNote}</p>}
+        {voiceNote && <p className="text-[14px] text-[#1a1a1a]/70">{voiceNote}</p>}
         {heardUser && (
           <button type="button" className="frosted rounded-full px-5 py-3 text-[17px]" onClick={() => setStep("confirm")}>
             See what I heard
@@ -246,29 +246,29 @@ export function ArrivalFlow() {
 
   if (step === "confirm") {
     return (
-      <main className="mx-auto grid max-w-xl gap-6 px-4 py-8 text-white">
-        <Wordmark variant="white" className="h-8" />
+      <main className="mx-auto grid max-w-xl gap-6 px-4 py-8 text-[#1a1a1a]">
+        <Wordmark variant="white" className="h-8 !text-[#1a1a1a]" />
         <div className="grid gap-2">
           <h1 className="font-display text-[32px] leading-tight font-normal">Does this sound right, {extraction.name}?</h1>
           {extraction.thin && (
-            <p className="text-[15px] text-white/80">
+            <p className="text-[15px] text-[#1a1a1a]/70">
               That was a light conversation, so this uses a complete example household. Go back if you want to name your own plans.
             </p>
           )}
         </div>
         <section className="grid gap-3">
           {extraction.goals.map((goal) => (
-            <article key={goal.id} className="frosted rounded-2xl px-4 py-4">
+            <article key={goal.id} className="rounded-2xl border border-[#1a1a1a] px-4 py-4">
               <p className="text-[18px]">{goal.name}</p>
-              <p className="text-[15px] text-white/80">
+              <p className="text-[15px] text-[#1a1a1a]/70">
                 {gbp(goal.savedSoFar)} saved of {gbp(goal.targetAmount)}
               </p>
-              <p className="text-[15px] text-white/80">Target: {monthYear(goal.targetDate)}</p>
+              <p className="text-[15px] text-[#1a1a1a]/70">Target: {monthYear(goal.targetDate)}</p>
             </article>
           ))}
         </section>
         <section className="grid gap-2">
-          <h2 className="text-[15px] text-white/70">Coming up</h2>
+          <h2 className="text-[15px] text-[#1a1a1a]/60">Coming up</h2>
           {extraction.events.map((event) => (
             <p key={event.id} className="text-[15px]">
               {event.name} · {monthYear(event.date)} · {gbp(event.cost)}
@@ -276,7 +276,7 @@ export function ArrivalFlow() {
           ))}
         </section>
         <div className="flex flex-wrap gap-3">
-          <button type="button" className="rounded-full px-5 py-3 text-[17px] text-white/80" onClick={() => setStep("talk")}>
+          <button type="button" className="rounded-full px-5 py-3 text-[17px] text-[#1a1a1a]/70" onClick={() => setStep("talk")}>
             Go back
           </button>
           <button type="button" className="frosted rounded-full px-5 py-3 text-[17px]" onClick={() => setStep("connect")}>
@@ -338,11 +338,11 @@ export function ArrivalFlow() {
 
   const preview = buildPlanState({ transcript, connections });
   return (
-    <main className="mx-auto grid max-w-xl gap-6 px-4 py-8 text-white">
-      <Wordmark variant="white" className="h-8" />
+    <main className="mx-auto grid max-w-xl gap-6 px-4 py-8 text-[#1a1a1a]">
+      <Wordmark variant="white" className="h-8 !text-[#1a1a1a]" />
       <h1 className="font-display text-[32px] leading-tight font-normal">Here is the picture</h1>
       <section className="grid gap-2">
-        <h2 className="text-[15px] text-white/70">Accounts</h2>
+        <h2 className="text-[15px] text-[#1a1a1a]/60">Accounts</h2>
         {preview.accounts.map((account) => (
           <p key={account.id} className="flex justify-between gap-4 text-[16px]">
             <span>{account.name}</span>
@@ -364,7 +364,7 @@ export function ArrivalFlow() {
       </section>
       {preview.preferences.signals.length > 0 && (
         <section className="grid gap-1">
-          <h2 className="text-[15px] text-white/70">Also noticed</h2>
+          <h2 className="text-[15px] text-[#1a1a1a]/60">Also noticed</h2>
           {preview.preferences.signals.map((signal) => (
             <p key={signal} className="text-[16px]">
               {signal}
@@ -374,7 +374,7 @@ export function ArrivalFlow() {
       )}
       {error && <p className="text-[15px]">{error}</p>}
       <div className="flex flex-wrap gap-3">
-        <button type="button" className="rounded-full px-5 py-3 text-[17px] text-white/80" onClick={() => setStep("connect")} disabled={generating}>
+        <button type="button" className="rounded-full px-5 py-3 text-[17px] text-[#1a1a1a]/70" onClick={() => setStep("connect")} disabled={generating}>
           Go back
         </button>
         <button type="button" className="frosted rounded-full px-5 py-3 text-[17px] disabled:opacity-60" onClick={generate} disabled={generating}>
