@@ -17,6 +17,7 @@ import {
 } from "@/lib/spending/insights";
 
 export type MockIntent =
+  | "greeting"
   | "checkin"
   | "suggest"
   | "review"
@@ -60,6 +61,7 @@ export function lastUserText(messages: IncomingMessage[]): string {
 
 export function detectIntent(text: string): MockIntent {
   const normalised = text.toLowerCase();
+  if (/^(?:hi|hello|hey|good (?:morning|afternoon|evening))(?:\b|[!,.?])/.test(normalised.trim())) return "greeting";
   if (/how am i|how'm i|how are you|check-?in|am i doing|how am i doing/.test(normalised)) return "checkin";
   if (/what spending|could i cut|subscription|eating out|free up|spend less|unused|spending change/.test(normalised)) {
     return "suggest";
@@ -131,12 +133,24 @@ function debtText(profile: Profile, extra: number | undefined): { text: string; 
 export function buildMockReply(input: {
   profile: Profile;
   text: string;
+  messages?: IncomingMessage[];
   goals?: Goal[];
   history?: HistorySnapshot[];
   today?: Date;
 }): MockReply {
   const intent = detectIntent(input.text);
   const amount = poundsIn(input.text);
+
+  if (intent === "greeting") {
+    const hasSpokenBefore = (input.messages ?? []).some((message) => message.role === "assistant");
+    return {
+      intent,
+      text: hasSpokenBefore
+        ? `I’m here, ${input.profile.name || "and listening"}. What would you like to look at?`
+        : `Hi ${input.profile.name || "there"}. How are you feeling about your money today — what’s on your mind?`,
+      calls: [],
+    };
+  }
 
   if (intent === "checkin") {
     const output = buildCheckIn({
@@ -277,6 +291,7 @@ export function mockChatResponse(input: {
   const reply = buildMockReply({
     profile: input.profile,
     text: lastUserText(input.messages),
+    messages: input.messages,
     goals: input.goals,
     history: input.history,
     today: input.today,

@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { DemoControls } from "@/components/demo/demo-controls";
 import { CoachProvider } from "./coach-provider";
 import { NavBar } from "./nav-bar";
 
@@ -21,7 +20,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </p>
         </footer>
         {pathname !== "/" && <NavBar />}
-        <DemoControls />
       </div>
     </CoachProvider>
   );

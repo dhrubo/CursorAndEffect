@@ -15,9 +15,17 @@ function numbersIn(text: string): string[] {
 describe("scripted chat", () => {
   it("routes the demo questions", () => {
     expect(detectIntent("How am I doing?")).toBe("checkin");
+    expect(detectIntent("Hello")).toBe("greeting");
     expect(detectIntent("What spending could I cut?")).toBe("suggest");
     expect(detectIntent("Avalanche or snowball for my debts?")).toBe("debt");
     expect(detectIntent("What should I do with my next £1,500?")).toBe("allocate");
+  });
+
+  it("keeps a greeting conversational instead of running the financial check-in", () => {
+    const reply = buildMockReply({ profile: priya, text: "Hello", messages: [] });
+    expect(reply.intent).toBe("greeting");
+    expect(reply.calls).toEqual([]);
+    expect(reply.text).toMatch(/what’s on your mind|how are you feeling/i);
   });
 
   it("streams a check-in with a tool part, and a win before the risk", async () => {

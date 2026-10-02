@@ -1,12 +1,26 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { MicIcon, SendIcon } from "lucide-react";
 import { Wordmark } from "@/components/shell/wordmark";
 import { gbp, pct } from "@/lib/format";
 import { buildPlanState, sourceFindings, type Connections } from "@/lib/plan/build-state";
-import { coachFollowUp, extractGoals } from "@/lib/plan/extract-goals";
+import { nextCoachLine } from "@/lib/plan/conversation";
+import { extractGoals } from "@/lib/plan/extract-goals";
+import {
+  canListen,
+  canSpeak,
+  defaultVoiceId,
+  listenOnce,
+  replyEndsConversation,
+  serverVoiceSnapshot,
+  speak,
+  subscribeVoices,
+  voiceSnapshot,
+  voiceStatus,
+  type VoicePhase,
+} from "@/lib/plan/voice";
 import { parseSaverState } from "@/lib/saver/schema";
 import { useSaver } from "@/lib/saver/use-saver-state";
 
@@ -23,6 +37,13 @@ const SOURCES: { id: keyof Connections; title: string; items: string[] }[] = [
 ];
 
 const EMPTY_CONNECTIONS: Connections = { banking: false, investments: false, other: false };
+const VOICE_KEY = "nurture.voice.v1";
+const VOICE_PREVIEW = "Hello. This is how I'll sound while we plan.";
+
+function storedVoice(): string {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(VOICE_KEY) ?? "";
+}
 
 export function ArrivalFlow() {
   const router = useRouter();
@@ -30,13 +51,23 @@ export function ArrivalFlow() {
   const [step, setStep] = useState<Step>("intro");
   const [lines, setLines] = useState<Line[]>([{ role: "coach", text: OPENING }]);
   const [draft, setDraft] = useState("");
-  const [listening, setListening] = useState(false);
-  const [voiceNote, setVoiceNote] = useState("");
+  const [voicePhase, setVoicePhase] = useState<VoicePhase>("idle");
+  const [voiceSupported, setVoiceSupported] = useState(true);
+  const [voiceHint, setVoiceHint] = useState("");
+  const [chosenVoice, setChosenVoice] = useState(storedVoice);
+  const [speakingLine, setSpeakingLine] = useState(-1);
+  const [spokenWord, setSpokenWord] = useState(-1);
   const [connections, setConnections] = useState<Connections>(EMPTY_CONNECTIONS);
   const [pending, setPending] = useState<keyof Connections | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
-  const recognition = useRef<SpeechRecognitionLike | null>(null);
+  const voices = useSyncExternalStore(subscribeVoices, voiceSnapshot, serverVoiceSnapshot);
+  const voiceId = voices.some((voice) => voice.id === chosenVoice) ? chosenVoice : defaultVoiceId(voices);
+  const linesRef = useRef(lines);
+  const voiceRef = useRef(chosenVoice);
+  const voiceLoop = useRef(false);
+  const listener = useRef<{ stop: () => void } | null>(null);
+  const speaker = useRef<{ cancel: () => void } | null>(null);
 
   const transcript = lines
     .filter((line) => line.role === "user")
@@ -45,42 +76,133 @@ export function ArrivalFlow() {
   const extraction = extractGoals(transcript);
   const heardUser = lines.some((line) => line.role === "user");
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    const nextTranscript = transcript ? `${transcript}\n${trimmed}` : trimmed;
-    setLines((current) => [
-      ...current,
-      { role: "user", text: trimmed },
-      { role: "coach", text: coachFollowUp(nextTranscript) },
-    ]);
+    if (!trimmed) return null;
+    const messages: Line[] = [...linesRef.current, { role: "user", text: trimmed }];
+    setVoiceHint("One moment…");
+    const turn = await nextCoachLine(messages);
+    const nextLines: Line[] = [...messages, { role: "coach", text: turn.reply }];
+    linesRef.current = nextLines;
+    setLines(nextLines);
     setDraft("");
+    setVoiceHint("");
+    return turn;
   };
 
-  const toggleVoice = () => {
-    if (listening) {
-      recognition.current?.stop();
-      setListening(false);
-      return;
-    }
-    const Speech = speechRecognition();
-    if (!Speech) {
-      setVoiceNote("Voice isn't available in this browser. You can type instead.");
-      return;
-    }
-    setVoiceNote("");
-    const session = new Speech();
-    session.lang = "en-GB";
-    session.interimResults = false;
-    session.onresult = (event) => {
-      const heard = event.results[0]?.[0]?.transcript ?? "";
-      if (heard) send(heard);
-    };
-    session.onend = () => setListening(false);
-    recognition.current = session;
-    setListening(true);
-    session.start();
+  const stopVoice = () => {
+    voiceLoop.current = false;
+    listener.current?.stop();
+    listener.current = null;
+    speaker.current?.cancel();
+    speaker.current = null;
+    setSpeakingLine(-1);
+    setSpokenWord(-1);
+    setVoicePhase("idle");
   };
+
+  const say = (text: string, after: () => void) => {
+    speaker.current?.cancel();
+    const lineIndex = linesRef.current.map((line) => line.text).lastIndexOf(text);
+    setSpeakingLine(lineIndex);
+    setSpokenWord(-1);
+    setVoicePhase("speaking");
+    const done = () => {
+      speaker.current = null;
+      setSpeakingLine(-1);
+      setSpokenWord(-1);
+      after();
+    };
+    speaker.current = speak(text, {
+      voiceId: voiceRef.current || undefined,
+      onWord: setSpokenWord,
+      onEnd: done,
+    });
+    if (!speaker.current) done();
+  };
+
+  const beginListen = () => {
+    listener.current?.stop();
+    setVoicePhase("listening");
+    setDraft("");
+    listener.current = listenOnce({
+      onPartial: setDraft,
+      onFinal: (heard) => {
+        listener.current = null;
+        void send(heard).then((turn) => {
+          if (!voiceLoop.current || !turn) {
+            setVoicePhase("idle");
+            return;
+          }
+          speakThenListen(turn.reply, turn.done);
+        });
+      },
+      onEnd: () => {
+        listener.current = null;
+        if (!voiceLoop.current) return;
+        voiceLoop.current = false;
+        setVoicePhase("idle");
+        setVoiceHint("I didn't catch that. Tap the microphone and try again.");
+      },
+      onError: () => {
+        listener.current = null;
+        voiceLoop.current = false;
+        setVoicePhase("idle");
+      },
+    });
+    if (!listener.current) {
+      voiceLoop.current = false;
+      setVoicePhase("idle");
+      setVoiceSupported(false);
+    }
+  };
+
+  const speakThenListen = (text: string, done = false) => {
+    const finished = done || replyEndsConversation(text);
+    setVoiceHint("");
+    const next = () => {
+      if (!voiceLoop.current || finished || !canListen()) {
+        stopVoice();
+        return;
+      }
+      beginListen();
+    };
+    if (!canSpeak()) {
+      next();
+      return;
+    }
+    say(text, next);
+  };
+
+  const readAloud = (text: string) => {
+    if (!canSpeak()) return;
+    setVoiceHint("");
+    say(text, () => setVoicePhase("idle"));
+  };
+
+  const startVoice = () => {
+    const listens = canListen();
+    setVoiceSupported(listens);
+    setVoiceHint("");
+    voiceLoop.current = listens;
+    const lastCoach = [...linesRef.current].reverse().find((line) => line.role === "coach");
+    speakThenListen(lastCoach?.text ?? OPENING);
+  };
+
+  const chooseVoice = (id: string) => {
+    setChosenVoice(id);
+    voiceRef.current = id;
+    window.localStorage.setItem(VOICE_KEY, id);
+    if (voicePhase === "idle") readAloud(VOICE_PREVIEW);
+  };
+
+  useEffect(() => {
+    return () => {
+      voiceLoop.current = false;
+      listener.current?.stop();
+      speaker.current?.cancel();
+    };
+  }, []);
 
   const connect = (id: keyof Connections) => {
     if (connections[id] || pending) return;
@@ -120,7 +242,14 @@ export function ArrivalFlow() {
           <li className="frosted rounded-2xl px-4 py-3">Connect the accounts and dates that matter.</li>
           <li className="frosted rounded-2xl px-4 py-3">Leave with a plan you can actually look at.</li>
         </ul>
-        <button type="button" className="frosted mx-auto rounded-full px-6 py-3 text-[17px]" onClick={() => setStep("talk")}>
+        <button
+          type="button"
+          className="frosted mx-auto rounded-full px-6 py-3 text-[17px]"
+          onClick={() => {
+            setStep("talk");
+            readAloud(OPENING);
+          }}
+        >
           Start planning
         </button>
       </main>
@@ -132,6 +261,36 @@ export function ArrivalFlow() {
       <main className="mx-auto flex min-h-[78vh] max-w-xl flex-col gap-4 px-4 py-8 text-white">
         <Wordmark variant="white" className="h-8" />
         <h1 className="font-display text-[32px] leading-tight font-normal">Your plans</h1>
+        <div className="grid justify-items-center gap-3">
+          <button
+            type="button"
+            className={`flex size-20 items-center justify-center rounded-full ${voicePhase === "listening" ? "bg-white text-[#1a1a1a]" : "frosted"}`}
+            aria-pressed={voicePhase !== "idle"}
+            aria-label={voicePhase === "idle" ? "Start talking" : "Stop talking"}
+            onClick={() => (voiceLoop.current ? stopVoice() : startVoice())}
+          >
+            <MicIcon className="size-7" />
+          </button>
+          <p className="text-center text-[15px] text-white/80" aria-live="polite">
+            {voiceHint || voiceStatus(voicePhase, voiceSupported)}
+          </p>
+          {voices.length > 0 && (
+            <label className="flex items-center gap-2 text-[14px] text-white/80">
+              Voice
+              <select
+                value={voiceId}
+                onChange={(event) => chooseVoice(event.target.value)}
+                className="max-w-[16rem] rounded-full border border-white/70 bg-white/15 px-3 py-1.5 text-[14px] text-white outline-none"
+              >
+                {voices.map((voice) => (
+                  <option key={voice.id} value={voice.id} className="text-[#1a1a1a]">
+                    {voice.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
         <div className="grid flex-1 content-start gap-3">
           {lines.map((line, index) => (
             <p
@@ -142,7 +301,7 @@ export function ArrivalFlow() {
                   : "ml-auto max-w-[90%] rounded-2xl bg-white px-4 py-3 text-[16px] leading-relaxed text-[#1a1a1a]"
               }
             >
-              {line.text}
+              {index === speakingLine ? <SpokenText text={line.text} word={spokenWord} /> : line.text}
             </p>
           ))}
         </div>
@@ -150,7 +309,13 @@ export function ArrivalFlow() {
           className="flex items-center gap-2"
           onSubmit={(event) => {
             event.preventDefault();
-            send(draft);
+            listener.current?.stop();
+            listener.current = null;
+            void send(draft).then((turn) => {
+              if (!turn) return;
+              if (voiceLoop.current) speakThenListen(turn.reply, turn.done);
+              else readAloud(turn.reply);
+            });
           }}
         >
           <label className="sr-only" htmlFor="goal-talk">
@@ -163,22 +328,19 @@ export function ArrivalFlow() {
             placeholder="Type, or speak"
             className="min-w-0 flex-1 rounded-full border border-white/70 bg-white/15 px-4 py-3 text-[16px] outline-none placeholder:text-white/60"
           />
-          <button
-            type="button"
-            className="frosted flex size-12 items-center justify-center rounded-full"
-            aria-label={listening ? "Stop listening" : "Speak"}
-            aria-pressed={listening}
-            onClick={toggleVoice}
-          >
-            <MicIcon className="size-5" />
-          </button>
           <button type="submit" className="frosted flex size-12 items-center justify-center rounded-full" aria-label="Send">
             <SendIcon className="size-5" />
           </button>
         </form>
-        {voiceNote && <p className="text-[14px] text-white/80">{voiceNote}</p>}
         {heardUser && (
-          <button type="button" className="frosted rounded-full px-5 py-3 text-[17px]" onClick={() => setStep("confirm")}>
+          <button
+            type="button"
+            className="frosted rounded-full px-5 py-3 text-[17px]"
+            onClick={() => {
+              stopVoice();
+              setStep("confirm");
+            }}
+          >
             See what I heard
           </button>
         )}
@@ -327,27 +489,26 @@ export function ArrivalFlow() {
   );
 }
 
+function SpokenText({ text, word }: { text: string; word: number }) {
+  const words = text.trim().split(/\s+/);
+  return (
+    <>
+      {words.map((part, index) => (
+        <span key={index}>
+          <span className={index === word ? "rounded-sm bg-white text-[#1a1a1a] transition-colors" : "transition-colors"}>
+            {part}
+          </span>
+          {index < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </>
+  );
+}
+
 function monthYear(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
   });
-}
-
-type SpeechResult = { results: Array<Array<{ transcript: string }>> };
-
-type SpeechRecognitionLike = {
-  lang: string;
-  interimResults: boolean;
-  onresult: ((event: SpeechResult) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-function speechRecognition(): (new () => SpeechRecognitionLike) | null {
-  if (typeof window === "undefined") return null;
-  const host = window as Window & { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
-  return host.SpeechRecognition ?? host.webkitSpeechRecognition ?? null;
 }
