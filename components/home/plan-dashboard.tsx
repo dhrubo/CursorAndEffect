@@ -5,14 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Wordmark } from "@/components/shell/wordmark";
 import { gbp, pct } from "@/lib/format";
-import { financialPosition, goalStatus, onTrackCount, planInsights, upcomingEvents } from "@/lib/plan/insights";
+import { financialPosition, goalStatus, onTrackCount, upcomingEvents } from "@/lib/plan/insights";
 import type { GoalStatus } from "@/lib/plan/insights";
 import type { SaverState } from "@/lib/saver/schema";
 
 export function PlanDashboard({ state, onReset }: { state: SaverState; onReset: () => void }) {
   const position = financialPosition(state);
   const events = upcomingEvents(state);
-  const notes = planInsights(state);
   const name = state.profile.name || "there";
 
   return (
@@ -89,39 +88,6 @@ export function PlanDashboard({ state, onReset }: { state: SaverState; onReset: 
                   </p>
                   <Progress value={progress} aria-label={`${goal.name} progress`} />
                   <p className="text-sm text-muted-foreground">Target: {monthYear(goal.targetDate)}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
-      <section className="grid gap-3">
-        <h2 className="font-display text-[28px] font-normal">Plans</h2>
-        {notes.length > 0 && (
-          <Card>
-            <CardContent className="grid gap-2">
-              {notes.map((note) => (
-                <p key={note} className="text-[15px] leading-relaxed">
-                  {note}
-                </p>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-        <div className="grid gap-3">
-          {events.map((event) => {
-            const goal = state.goals.find((item) => item.id === event.goalId);
-            return (
-              <Card key={event.id} size="sm">
-                <CardContent className="grid gap-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-base">{event.name}</p>
-                    <p className="text-sm tabular-nums">{gbp(event.cost)}</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {monthYear(event.date)}
-                    {goal ? ` · ${goal.name}` : ""}
-                  </p>
                 </CardContent>
               </Card>
             );
