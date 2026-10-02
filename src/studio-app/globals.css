@@ -149,8 +149,8 @@
   background: radial-gradient(
     circle var(--spot-size, 240px) at var(--spot-x, 50%) var(--spot-y, 40%),
     transparent 0%,
-    rgba(8, 7, 6, 0.16) 36%,
-    rgba(8, 7, 6, 0.88) 72%
+    rgba(8, 7, 6, 0.05) 32%,
+    rgba(8, 7, 6, 0.58) 78%
   );
 }
 

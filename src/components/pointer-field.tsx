@@ -226,10 +226,18 @@ export function PointerField({ effect, scale, intensity, color }: PointerSetting
         const dx = smooth.x - cx;
         const dy = smooth.y - cy;
         const dist = Math.hypot(dx, dy) || 1;
-        const range = 170 * size;
+        const range = 260 * size;
         if (dist < range) {
-          const pull = (1 - dist / range) * 22 * strength;
-          element.style.transform = `translate(${(dx / dist) * pull}px, ${(dy / dist) * pull}px)`;
+          const influence = (1 - dist / range) ** 0.7;
+          let tx = dx * 0.45 * influence * (0.45 + strength);
+          let ty = dy * 0.45 * influence * (0.45 + strength);
+          const mag = Math.hypot(tx, ty) || 1;
+          const cap = 42 * size;
+          if (mag > cap) {
+            tx = (tx / mag) * cap;
+            ty = (ty / mag) * cap;
+          }
+          element.style.transform = `translate(${tx}px, ${ty}px)`;
         } else {
           element.style.transform = "";
         }

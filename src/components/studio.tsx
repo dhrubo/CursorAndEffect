@@ -21,6 +21,7 @@ export function Studio() {
   const [nativeCursor, setNativeCursor] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const effect = effectById(effectId);
+  const effectIndex = EFFECTS.findIndex((item) => item.id === effectId);
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -77,11 +78,12 @@ export function Studio() {
         {effect.name}. {effect.description}
       </p>
 
-      <div className="relative z-10 flex min-h-dvh flex-col px-4 pt-6 pb-64 sm:px-8">
+      <div className="relative z-10 flex min-h-dvh flex-col px-4 pt-6 pb-72 sm:px-8 md:pb-56">
         <header className="flex items-center justify-between gap-4">
           <p className="font-display text-xl tracking-tight">Cursor & Effect</p>
           <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
-            {reducedMotion ? "Reduced motion" : effect.name}
+            {String(effectIndex + 1).padStart(2, "0")} / {String(EFFECTS.length).padStart(2, "0")}
+            {reducedMotion ? " · Reduced motion" : ""}
           </p>
         </header>
 
@@ -139,7 +141,7 @@ export function Studio() {
         <section
           id="controls"
           aria-label="Effect controls"
-          className="mx-auto max-w-5xl cursor-auto rounded-2xl border border-border bg-card/90 p-4 shadow-2xl backdrop-blur-xl"
+          className="mx-auto max-w-5xl cursor-auto rounded-2xl border border-border bg-card/90 p-3 shadow-2xl backdrop-blur-xl sm:p-4"
         >
           <div
             role="radiogroup"
@@ -156,6 +158,7 @@ export function Studio() {
                   aria-checked={selected}
                   variant={selected ? "default" : "outline"}
                   size="sm"
+                  aria-label={`${index + 1} ${item.name}`}
                   className="cursor-pointer"
                   onClick={() => setEffectId(item.id)}
                 >
@@ -166,7 +169,7 @@ export function Studio() {
             })}
           </div>
 
-          <div className="grid gap-4 border-t border-border pt-3 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-3 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
             <div className="grid gap-2">
               <Label htmlFor="scale">Scale {scale}%</Label>
               <Slider
