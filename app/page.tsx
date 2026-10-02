@@ -1,58 +1,67 @@
-import { CreditCardIcon, HouseIcon, LandmarkIcon, PiggyBankIcon } from "lucide-react";
-import { OwnNumbers, PersonaPicker } from "@/components/onboarding";
+"use client";
 
-const AREAS = [
-  { icon: CreditCardIcon, title: "Debt", text: "Which debt to clear first, and avalanche vs snowball." },
-  { icon: PiggyBankIcon, title: "Savings and ISAs", text: "Emergency fund, Cash ISA, Lifetime ISA, tax on interest." },
-  { icon: HouseIcon, title: "Mortgages", text: "Overpay or save, and what to do when your deal ends." },
-  { icon: LandmarkIcon, title: "Current accounts", text: "Fees, overdraft costs and switching bonuses." },
-];
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { SAVER_PERSONAS } from "@/data/saver-personas";
+import { PERSONAS } from "@/data/personas";
+import { BrandStar } from "@/components/shell/brand-mark";
+import { Wordmark } from "@/components/shell/wordmark";
+import { stateFromLegacyProfile, useSaver } from "@/lib/saver/use-saver-state";
+import { DEMO_TODAY } from "@/data/saver-personas";
 
-export default function Home() {
+export default function SplashPage() {
+  const { state, loaded, save } = useSaver();
+  const router = useRouter();
+  const [ready] = useState(true);
+  if (!loaded) return <div className="h-screen" />;
+
   return (
-    <div className="mx-auto grid w-full max-w-7xl gap-14 px-4 py-10 md:py-16">
-      <section className="grid gap-6 md:max-w-3xl">
-        <p className="text-sm font-medium text-primary">UK money guidance, in one plan</p>
-        <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-5xl">
-          What should I do with my next £?
-        </h1>
-        <p className="text-lg text-muted-foreground text-pretty">
-          Most comparison sites look at one product at a time. NextPound looks at your whole picture,
-          including debts, savings, ISAs, your pension match and your mortgage, and shows where your next pound
-          does the most good. The numbers come from transparent calculators, and a Grok-powered guide explains
-          the trade-offs.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {AREAS.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="flex gap-3 rounded-xl border bg-background p-3">
-              <Icon className="mt-0.5 size-5 shrink-0 text-primary" />
-              <div>
-                <p className="text-sm font-medium">{title}</p>
-                <p className="text-sm text-muted-foreground">{text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Try a demo</h2>
-          <p className="text-muted-foreground">Load an example household to see how the plan works.</p>
-        </div>
-        <PersonaPicker />
-      </section>
-
-      <section id="profile" className="grid scroll-mt-20 gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Or use your own numbers</h2>
-          <p className="text-muted-foreground">
-            Rough figures are fine. Everything stays in this browser; nothing is sent anywhere until you chat
-            with the guide.
-          </p>
-        </div>
-        <OwnNumbers />
-      </section>
-    </div>
+    <main className="mx-auto grid min-h-[80vh] max-w-3xl content-center gap-8 px-6 py-16 text-center text-white">
+      <BrandStar className={`mx-auto size-8 ${ready ? "opacity-100" : "opacity-0"}`} />
+      <Wordmark variant="white" className="mx-auto h-14" />
+      <p className="font-display text-[40px] leading-[1.15]">
+        {state?.profile.name ? `Hey ${state.profile.name}` : "See your plans come together"}
+      </p>
+      <div className="flex flex-wrap justify-center gap-3">
+        {state && (
+          <button type="button" className="frosted rounded-full px-5 py-3 text-[17px]" onClick={() => router.push("/home")}>
+            Continue
+          </button>
+        )}
+        <button type="button" className="frosted rounded-full px-5 py-3 text-[17px]" onClick={() => router.push("/onboarding")}>
+          Plan a new goal
+        </button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {SAVER_PERSONAS.map((persona) => (
+          <button
+            key={persona.id}
+            type="button"
+            onClick={() => {
+              save(structuredClone(persona.state));
+              router.push("/home");
+            }}
+            className="rounded-[20px] bg-white/15 px-4 py-4 text-left"
+          >
+            <p className="text-[17px]">{persona.state.profile.name}</p>
+            <p className="text-[15px] text-white/75">{persona.tagline}</p>
+          </button>
+        ))}
+        {PERSONAS.map((persona) => (
+          <button
+            key={persona.id}
+            type="button"
+            onClick={() => {
+              save(stateFromLegacyProfile(persona.profile, DEMO_TODAY));
+              router.push("/money-health");
+            }}
+            className="rounded-[20px] bg-white/15 px-4 py-4 text-left"
+          >
+            <p className="text-[17px]">{persona.profile.name}</p>
+            <p className="text-[15px] text-white/75">{persona.tagline}</p>
+          </button>
+        ))}
+      </div>
+    </main>
   );
 }
