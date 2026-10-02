@@ -28,19 +28,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col bg-muted/40">
         <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur">
-          <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4">
+          <div className="mx-auto flex min-h-14 w-full max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2">
             <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
               <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <PoundSterlingIcon className="size-4" />
               </span>
               NextPound
             </Link>
-            <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+            <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <Link href="/#profile" className="hover:text-foreground">
                 Your numbers
               </Link>
               <Link href="/plan" className="hover:text-foreground">
                 Your plan
+              </Link>
+              <Link href="/coach" className="hover:text-foreground">
+                Coach
               </Link>
             </nav>
           </div>
