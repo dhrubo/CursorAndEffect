@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.71",
     "@ai-sdk/react": "^4.0.130",
     "@ai-sdk/xai": "^5.0.14",
     "ai": "^7.0.127",

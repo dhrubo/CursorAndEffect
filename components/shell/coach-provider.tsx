@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useRouter } from "next/navigation";
 import type { AppUIMessage } from "@/lib/ai/tools";
+import { EMPTY_PROFILE } from "@/lib/profile";
 import { useSaver } from "@/lib/saver/use-saver-state";
 import type { SaverState } from "@/lib/saver/schema";
 
@@ -29,10 +30,11 @@ export function CoachProvider({ children }: { children: ReactNode }) {
 
   const send = (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || !state) return;
+    if (!trimmed) return;
     if (chat.status === "submitted" || chat.status === "streaming") return;
     chat.clearError();
-    chat.sendMessage({ text: trimmed }, { body: { state } });
+    // General questions work before a plan exists; personal calculations use the saved state.
+    chat.sendMessage({ text: trimmed }, { body: state ? { state } : { profile: EMPTY_PROFILE } });
   };
 
   const openCoach = (prefill?: string) => {

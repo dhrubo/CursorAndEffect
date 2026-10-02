@@ -137,7 +137,7 @@ export function AssistantDock() {
           <SheetTitle>Coach</SheetTitle>
           <SheetDescription>
             {scripted
-              ? "Scripted replies without an xAI key. Figures come from the calculators."
+              ? "Scripted replies until a Claude key is set. Figures come from the calculators."
               : "Chat about your plan. Figures come from the calculators."}
           </SheetDescription>
         </SheetHeader>

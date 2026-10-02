@@ -2,7 +2,6 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { PushNotifier } from "@/components/coach/push-notifier";
-import { DemoControls } from "@/components/demo/demo-controls";
 import { useSaver } from "@/lib/saver/use-saver-state";
 import { CoachProvider } from "./coach-provider";
 import { NavBar } from "./nav-bar";
@@ -37,7 +36,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </p>
         </footer>
         {homeVisible && <NavBar />}
-        <DemoControls />
         <PushNotifier active={homeVisible} />
       </div>
     </CoachProvider>

@@ -20,11 +20,9 @@ function CoachScreen() {
 
   return (
     <main className="min-h-[100dvh] bg-black px-4 py-8 text-white">
-      {state ? (
-        <ChatPanel prefill={params.get("q") ?? undefined} />
-      ) : (
-        <p className="text-center text-white/70">Plan a goal first, then we can talk it through.</p>
-      )}
+      {!state && <p className="mb-4 text-center text-sm text-white/70">Ask a general question now, or make a plan for answers based on your numbers.</p>}
+      <ChatPanel prefill={params.get("q") ?? undefined} />
+
     </main>
   );
 }

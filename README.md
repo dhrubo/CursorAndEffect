@@ -4,14 +4,20 @@ A warm savings coach. Set a near-term plan, watch it come together, and see what
 
 Load Jordyn or Jordan from the splash screen, or plan a new goal. Demo moments (a night out, payday, a missed save) sit on the Moments button. Numbers come from the calculators. The coach explains them and does not invent maths.
 
-## NextPound ladder, now Money health
+## Hackathon demo scope
+
+Nurture is deliberately a **local-first demo**. Bank accounts, transactions, email/calendar signals, product rates and personas are deterministic fixtures; they are visibly labelled as sample connections in the flow and never leave the browser. This makes the full journey reliable to demonstrate without credentials, consent flows or a database.
+
+The optional live integration is the conversational coach. With an Anthropic key it uses Claude; without one it serves a deterministic scripted response, so the demo remains complete offline.
+
+## Money health
 
 The earlier guide answered "What should I do with my next £?" across **debt, savings, ISAs, current accounts, a pension match and a mortgage**. That engine is unchanged and available at `/money-health` (`/plan` redirects there).
 
 - A deterministic **rules engine** follows the widely used UK priority order and splits any amount step by step.
 - A **chat guide** explains trade-offs and runs what-ifs. It never does its own maths: every figure comes from
-  the same calculators as the dashboard, called as tools and shown as cards. With `XAI_API_KEY` that guide is
-  Grok. Without a key, the same screen uses a scripted reply so the demo still runs.
+  the same calculators as the dashboard, called as tools and shown as cards. With `ANTHROPIC_API_KEY` that guide is
+  Claude. Without a key, the same screen uses a scripted reply so the demo still runs.
 - Everything is stored in the browser (`localStorage`). There is no database and no login.
 
 > Guidance, not regulated financial advice. All providers and rates are fictional and illustrative.
@@ -23,12 +29,20 @@ Requires Node.js 22+.
 
 ```bash
 npm install
-cp .env.example .env.local   # then paste your key from https://console.x.ai
+cp .env.example .env.local   # then paste your key from https://console.anthropic.com
 npm run dev                  # http://localhost:3000
 ```
 
-The plan, milestones, Wrapped story and scripted chat all work without a key. Set `XAI_API_KEY` to talk to
-Grok instead of the scripted replies. You can set `XAI_MODEL` to use another Grok model (default `grok-4.7`).
+The plan, milestones, Wrapped story and scripted chat all work without a key. Set `ANTHROPIC_API_KEY` to talk to
+Claude instead of the scripted replies. You can set `ANTHROPIC_MODEL` to choose another Claude model (default
+`claude-sonnet-4-5`).
+
+### Optional natural Coach voice
+
+Set `ELEVENLABS_API_KEY` to have Coach replies played through ElevenLabs instead of the browser's system voice.
+The key is used only by `app/api/voice/route.ts` and is never sent to the browser. The route uses ElevenLabs'
+low-latency `eleven_flash_v2_5` model and a single warm British Coach voice (Charlotte, now routed by ElevenLabs
+to its British replacement Helen). Restart `npm run dev` after adding or changing the key so Next.js can load it.
 
 | Script | What it does |
 | --- | --- |
@@ -50,14 +64,14 @@ flowchart LR
   PlanDashboard --> FinanceEngine
   PlanDashboard --> ChatPanel
   ChatPanel -->|"messages + profile"| ChatRoute
-  ChatRoute --> Grok["Grok grok-4.7"]
-  Grok -->|tool calls| AiTools
+  ChatRoute --> Claude["Claude"]
+  Claude -->|tool calls| AiTools
   AiTools --> FinanceEngine
-  FinanceEngine --> MockProducts
+  FinanceEngine --> DemoFixtures["Deterministic demo fixtures"]
   AiTools -->|results rendered as cards| ChatPanel
 ```
 
-The chat route validates the profile with Zod and builds the tools *around* it, so Grok only supplies scenario
+The chat route validates the profile with Zod and builds the tools *around* it, so Claude only supplies scenario
 inputs (for example `amount: 500`) and can't misstate the user's own numbers.
 
 ### The priority ladder (`lib/finance/ladder.ts`)
@@ -85,7 +99,7 @@ remortgage rate if a deal ends within 6 months, plus a remortgage comparison aga
 app/
   page.tsx                 Landing, demo personas, onboarding form
   plan/page.tsx            Dashboard and chat panel
-  api/chat/route.ts        Grok via AI SDK: streamText + tools
+  api/chat/route.ts        Claude via AI SDK, with a deterministic fallback
 components/
   profile-form.tsx, onboarding.tsx
   plan/                    Allocation, ladder, alerts, quick wins, debt chart, mortgage views
@@ -121,13 +135,13 @@ data/
 
 ## Guardrails
 
-- Numbers come only from tested, deterministic functions. The system prompt forbids Grok from inventing figures
+- Numbers come only from tested, deterministic functions. The system prompt forbids Claude from inventing figures
   and requires it to quote the `ratesAsOf` date.
 - Framed as guidance, not advice: no specific investment recommendations; complex topics are referred to
   regulated advisers or MoneyHelper's Pension Wise.
 - Vulnerability handling: missed payments or negative budgets stop the plan and signpost free debt advice;
   the guide signposts Samaritans (116 123) if self-harm is mentioned.
-- Privacy: the profile stays in the browser and is sent to the server (and Grok) only when the user chats.
+- Privacy: the profile stays in the browser and is sent to the server (and Claude) only when the user chats.
 
 ## Ideas for next steps
 

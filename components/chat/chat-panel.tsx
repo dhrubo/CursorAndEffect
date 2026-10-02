@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { LoaderCircleIcon, RotateCcwIcon, SendIcon, SquareIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LoaderCircleIcon, MicIcon, RotateCcwIcon, SendIcon, SquareIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 import { FourPointStar } from "@/components/four-point-star";
 import { BrandStar } from "@/components/shell/brand-mark";
 import { useCoach } from "@/components/shell/coach-provider";
 import { repayableDebts } from "@/lib/finance/debt";
 import { gbp } from "@/lib/format";
+import { canListen, listenOnce, speak } from "@/lib/plan/voice";
 import type { Profile } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -233,28 +234,161 @@ function AssistantChatPanel({
 function SaverChatPanel({ prefill }: { prefill?: string }) {
   const { messages, send, status, error, stop, clear, state } = useCoach();
   const [input, setInput] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [speaking, setSpeaking] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [voiceInputError, setVoiceInputError] = useState("");
+  const [audioError, setAudioError] = useState("");
   const busy = status === "submitted" || status === "streaming";
   const sentPrefill = useRef(false);
+  const spokenMessageId = useRef<string | null>(null);
+  const audioReady = useRef(false);
+  const speaker = useRef<{ cancel: () => void } | null>(null);
+  const listener = useRef<{ stop: () => void } | null>(null);
+  const transcript = useRef<HTMLDivElement>(null);
+  const followTranscript = useRef(true);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (!followTranscript.current) return;
+    const pane = transcript.current;
+    if (pane) pane.scrollTop = pane.scrollHeight;
   }, [messages, status]);
 
+  const playReply = useCallback((text: string) => {
+    speaker.current?.cancel();
+    setAudioError("");
+    const playBrowserFallback = (reason?: string) => {
+      const fallback = speak(text, {
+        onEnd: () => {
+          speaker.current = null;
+          setSpeaking(false);
+        },
+      });
+      speaker.current = fallback;
+      setSpeaking(fallback !== null);
+      setAudioError(
+        reason
+          ? `ElevenLabs is unavailable (${reason}). Using your browser voice instead.`
+          : "ElevenLabs did not start, so the browser voice is being used instead.",
+      );
+      if (!fallback) setAudioError("Sound could not start. Check your browser's sound permissions.");
+    };
+    void playNaturalVoice(text, () => {
+      speaker.current = null;
+      setSpeaking(false);
+    })
+      .then((active) => {
+        if (active) {
+          speaker.current = active;
+          setSpeaking(true);
+          return;
+        }
+        playBrowserFallback();
+      })
+      .catch((error: unknown) => playBrowserFallback(error instanceof Error ? error.message : "request failed"));
+  }, []);
+
   useEffect(() => {
-    if (!prefill || sentPrefill.current || !state) return;
+    if (status !== "ready") return;
+    const latest = [...messages].reverse().find((message) => message.role === "assistant");
+    if (!audioReady.current) {
+      audioReady.current = true;
+      spokenMessageId.current = latest?.id ?? null;
+      return;
+    }
+    if (!latest || latest.id === spokenMessageId.current) return;
+    const text = latest.parts
+      .filter((part) => part.type === "text")
+      .map((part) => (part.type === "text" ? part.text : ""))
+      .join(" ")
+      .trim();
+    if (!text) return;
+
+    spokenMessageId.current = latest.id;
+    playReply(text);
+  }, [messages, playReply, status]);
+
+  useEffect(
+    () => () => {
+      speaker.current?.cancel();
+      listener.current?.stop();
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!prefill || sentPrefill.current) return;
     sentPrefill.current = true;
     send(prefill);
-  }, [prefill, send, state]);
+  }, [prefill, send]);
 
   const submit = (text: string) => {
+    followTranscript.current = true;
     send(text);
     setInput("");
   };
 
+  const toggleVoiceInput = () => {
+    if (listening) {
+      listener.current?.stop();
+      listener.current = null;
+      setListening(false);
+      return;
+    }
+    if (!canListen()) {
+      setVoiceInputError("Voice input is not available in this browser. You can still type your question.");
+      return;
+    }
+    setVoiceInputError("");
+    setListening(true);
+    listener.current = listenOnce({
+      onPartial: setInput,
+      onFinal: (heard) => {
+        listener.current = null;
+        setListening(false);
+        submit(heard);
+      },
+      onEnd: () => {
+        listener.current = null;
+        setListening(false);
+      },
+      onError: () => {
+        listener.current = null;
+        setListening(false);
+        setVoiceInputError("I couldn't hear that. Try again, or type your question.");
+      },
+    });
+    if (!listener.current) {
+      setListening(false);
+      setVoiceInputError("Voice input is not available in this browser. You can still type your question.");
+    }
+  };
+
+  const stopAudio = () => {
+    speaker.current?.cancel();
+    speaker.current = null;
+    setSpeaking(false);
+  };
+
   return (
-    <div className="flex min-h-[70vh] flex-col bg-black text-white">
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto py-2">
+    <div className="flex h-[min(44rem,78dvh)] min-h-[20rem] flex-col bg-black text-white">
+      {speaking && (
+        <button
+          type="button"
+          aria-label="Stop audio"
+          onClick={stopAudio}
+          className="self-end rounded-full border border-white/25 p-2 text-white"
+        >
+          <VolumeXIcon className="size-4" />
+        </button>
+      )}
+      <div
+        ref={transcript}
+        onScroll={(event) => {
+          const pane = event.currentTarget;
+          followTranscript.current = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 48;
+        }}
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-2 pr-1"
+      >
         <CoachBubble>What can I do for you?</CoachBubble>
         {messages.length === 0 &&
           SAVER_SUGGESTIONS.map((suggestion) => (
@@ -279,6 +413,17 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
                 if (isToolPart(part)) return <ToolPart key={index} part={part} />;
                 return null;
               })}
+              {assistantText(message) && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => playReply(assistantText(message))}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/25 px-2.5 py-1 text-xs text-white/80"
+                  >
+                    <Volume2Icon className="size-3.5" /> Play reply
+                  </button>
+                </div>
+              )}
             </div>
           ),
         )}
@@ -292,7 +437,6 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
             {errorMessage(error)}
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
       <form
         className="mt-4 flex items-end gap-2"
@@ -315,6 +459,16 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
           aria-label="Message Nurture"
           className="max-h-32 min-h-11 flex-1 resize-none rounded-full border border-white/25 bg-transparent px-4 py-3 text-[16px] text-white outline-none placeholder:text-white/45"
         />
+        <button
+          type="button"
+          aria-label={listening ? "Stop listening" : "Speak your question"}
+          aria-pressed={listening}
+          onClick={toggleVoiceInput}
+          disabled={busy}
+          className={`rounded-full border border-white/25 p-3 disabled:opacity-40 ${listening ? "bg-white text-[#1a1a1a]" : "text-white"}`}
+        >
+          <MicIcon className="size-4" />
+        </button>
         {busy ? (
           <button type="button" aria-label="Stop" onClick={() => stop()} className="rounded-full bg-white p-3 text-[#1a1a1a]">
             <SquareIcon className="size-4" />
@@ -325,13 +479,78 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
           </button>
         )}
       </form>
+      {(listening || voiceInputError) && (
+        <p className="px-1 pt-2 text-[12px] text-white/70" aria-live="polite">
+          {voiceInputError || "Listening…"}
+        </p>
+      )}
+      {audioError && <p className="px-1 pt-1 text-[12px] text-white/70" role="status">{audioError}</p>}
+      <p className="flex items-center gap-1 px-1 pt-2 text-[11px] text-white/50">
+        <Volume2Icon className="size-3" /> Replies are read aloud when your browser supports it. Guidance, not regulated advice.
+        {state && " Your numbers are sent to Claude only when you chat."}
+      </p>
       {messages.length > 0 && (
-        <button type="button" onClick={clear} className="mt-3 self-start text-[13px] text-white/50">
+        <button
+          type="button"
+          onClick={() => {
+            stopAudio();
+            clear();
+          }}
+          className="mt-3 self-start text-[13px] text-white/50"
+        >
           <RotateCcwIcon className="mr-1 inline size-3" /> Clear
         </button>
       )}
     </div>
   );
+}
+
+function assistantText(message: { parts: { type: string; text?: string }[] }): string {
+  return message.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text ?? "")
+    .join(" ")
+    .trim();
+}
+
+async function playNaturalVoice(text: string, onEnd: () => void): Promise<{ cancel: () => void } | null> {
+  const response = await fetch("/api/voice", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
+    throw new Error(typeof body?.error === "string" ? body.error : `request failed (${response.status})`);
+  }
+
+  const url = URL.createObjectURL(await response.blob());
+  const audio = new Audio(url);
+  let ended = false;
+  const finish = () => {
+    if (ended) return;
+    ended = true;
+    URL.revokeObjectURL(url);
+    onEnd();
+  };
+  audio.onended = finish;
+  audio.onerror = finish;
+  try {
+    await audio.play();
+  } catch {
+    URL.revokeObjectURL(url);
+    return null;
+  }
+  return {
+    cancel: () => {
+      if (ended) return;
+      ended = true;
+      audio.onended = null;
+      audio.onerror = null;
+      audio.pause();
+      URL.revokeObjectURL(url);
+    },
+  };
 }
 
 export function ChatPanel({
