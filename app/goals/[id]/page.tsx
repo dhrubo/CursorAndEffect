@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Wordmark } from "@/components/shell/wordmark";
+import { GlassCard, MeshBand, WhiteSheet } from "@/components/shell/surface";
 import { useParams } from "next/navigation";
 import { CheckpointLadder } from "@/components/timeline/checkpoint-ladder";
 import { DivertSimulator } from "@/components/timeline/divert-simulator";
@@ -30,32 +30,34 @@ export default function GoalDetailPage() {
   const progress = goal.targetAmount > 0 ? goal.savedSoFar / goal.targetAmount : 0;
 
   return (
-    <main className="mx-auto grid max-w-xl gap-6 px-4 py-10">
-      <Wordmark variant="gradient" />
-      <Image
-        src={goalImage(goal)}
-        alt=""
-        width={640}
-        height={360}
-        unoptimized
-        className={`rounded-[20px] object-cover ${progress > 0.75 ? "h-56 w-full" : "size-24"}`}
-      />
-      <header>
-        <h1 className="font-display text-[32px] font-normal">{goal.name}</h1>
-        <p className="text-[15px] text-[#1a1a1a]/60">
-          {progress > 0.75 && projection.etaDate
-            ? `${goal.name} is close. ${formatDayMonth(projection.etaDate)}.`
-            : `${gbp(projection.amountLeft)} still to go${projection.etaDate ? `. Future you, ${formatDayMonth(projection.etaDate)}.` : "."}`}
-        </p>
-        {goal.whyItMatters && <p className="mt-2 text-[15px]">{goal.whyItMatters}</p>}
-      </header>
+    <main>
+      <MeshBand label="Goal">
+        <GlassCard className="grid gap-3">
+          <Image
+            src={goalImage(goal)}
+            alt=""
+            width={640}
+            height={360}
+            unoptimized
+            className={`rounded-2xl object-cover ${progress > 0.75 ? "h-40 w-full" : "size-16"}`}
+          />
+          <h1 className="font-display text-[32px] leading-tight font-normal">{goal.name}</h1>
+          <p className="text-[15px]">
+            {progress > 0.75 && projection.etaDate
+              ? `${goal.name} is close. ${formatDayMonth(projection.etaDate)}.`
+              : `${gbp(projection.amountLeft)} still to go${projection.etaDate ? `. Future you, ${formatDayMonth(projection.etaDate)}.` : "."}`}
+          </p>
+          {goal.whyItMatters && <p className="text-[15px]">{goal.whyItMatters}</p>}
+        </GlassCard>
+      </MeshBand>
+      <WhiteSheet className="grid gap-4">
       <PrimaryTimeline goal={goal} today={state.today} />
-      <section className="rounded-[20px] bg-[#ede8e0] p-6">
-        <h2 className="mb-3 text-[22px] font-medium">Coming up</h2>
+      <section className="rounded-[18px] border border-[#1a1a1a] p-5">
+        <h2 className="mb-3 text-[18px] font-medium">Coming up</h2>
         <CheckpointLadder goal={goal} today={state.today} />
       </section>
-      <section className="rounded-[20px] bg-[#ede8e0] p-6">
-        <h2 className="mb-3 text-[22px] font-medium">If you spend it</h2>
+      <section className="rounded-[18px] border border-[#1a1a1a] p-5">
+        <h2 className="mb-3 text-[18px] font-medium">If you spend it</h2>
         <DivertSimulator goal={goal} today={state.today} />
       </section>
       <p className="text-sm text-[#1a1a1a]/60">
@@ -63,6 +65,7 @@ export default function GoalDetailPage() {
         {goal.autoSave.cadence === "weekly" ? " a week" : " on payday"}
         {goal.autoSave.enabled ? ", already on." : ", currently paused."}
       </p>
+      </WhiteSheet>
     </main>
   );
 }

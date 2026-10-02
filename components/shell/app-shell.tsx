@@ -5,7 +5,7 @@ import { DemoControls } from "@/components/demo/demo-controls";
 import { CoachProvider } from "./coach-provider";
 import { NavBar } from "./nav-bar";
 
-const MESH = [/^\/$/, /^\/coach/, /\/wrapped$/];
+const MESH = [/^\/$/, /\/wrapped$/];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

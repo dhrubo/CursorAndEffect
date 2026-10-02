@@ -245,14 +245,14 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
   };
 
   return (
-    <div className="flex min-h-[70vh] flex-col text-white">
+    <div className="flex min-h-[50vh] flex-col text-[#1a1a1a]">
       <div className="flex items-center justify-between px-1 py-2">
         <div className="flex items-center gap-2 text-sm">
           <BrandStar className="size-4" />
           <span>Coach</span>
         </div>
         {messages.length > 0 && (
-          <button type="button" aria-label="Clear conversation" onClick={clear} className="frosted rounded-full p-2">
+          <button type="button" aria-label="Clear conversation" onClick={clear} className="rounded-full border border-[#1a1a1a] p-2">
             <RotateCcwIcon className="size-4" />
           </button>
         )}
@@ -265,7 +265,7 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
                 key={suggestion}
                 type="button"
                 onClick={() => submit(suggestion)}
-                className="frosted rounded-full px-4 py-2 text-left text-[15px]"
+                className="rounded-full border border-[#1a1a1a] px-4 py-2 text-left text-[15px]"
               >
                 {suggestion}
               </button>
@@ -275,7 +275,7 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
         {messages.map((message) =>
           message.role === "user" ? (
             <div key={message.id} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl bg-white/20 px-3 py-2 text-sm">
+              <div className="max-w-[85%] rounded-2xl bg-[#1a1a1a] px-3 py-2 text-sm text-white">
                 {message.parts.map((part, index) => (part.type === "text" ? <span key={index}>{part.text}</span> : null))}
               </div>
             </div>
@@ -290,7 +290,7 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
           ),
         )}
         {status === "submitted" && (
-          <div className="flex items-center gap-2 text-xs text-white/80">
+          <div className="flex items-center gap-2 text-xs text-[#1a1a1a]/70">
             <LoaderCircleIcon className="size-3.5 animate-spin" /> Thinking
           </div>
         )}
@@ -320,19 +320,19 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
           rows={2}
           placeholder="Ask about a plan"
           aria-label="Message Nurture"
-          className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl border border-white/40 bg-white/15 px-3 py-2 text-sm text-white outline-none placeholder:text-white/70"
+          className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl border border-[#1a1a1a]/30 bg-white px-3 py-2 text-sm text-[#1a1a1a] outline-none placeholder:text-[#1a1a1a]/50"
         />
         {busy ? (
-          <button type="button" aria-label="Stop" onClick={() => stop()} className="frosted rounded-full p-3">
+          <button type="button" aria-label="Stop" onClick={() => stop()} className="rounded-full bg-[#1a1a1a] p-3 text-white">
             <SquareIcon className="size-4" />
           </button>
         ) : (
-          <button type="submit" aria-label="Send" disabled={!input.trim()} className="frosted rounded-full p-3 disabled:opacity-40">
+          <button type="submit" aria-label="Send" disabled={!input.trim()} className="rounded-full bg-[#1a1a1a] p-3 text-white disabled:opacity-40">
             <SendIcon className="size-4" />
           </button>
         )}
       </form>
-      <p className="px-1 pt-2 text-[11px] text-white/70">Guidance, not regulated advice. Your numbers are sent to Grok only when you chat.</p>
+      <p className="px-1 pt-2 text-[11px] text-[#1a1a1a]/60">Guidance, not regulated advice. Your numbers are sent to Grok only when you chat.</p>
     </div>
   );
 }
