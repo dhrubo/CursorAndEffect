@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MicIcon, SendIcon } from "lucide-react";
+import { BrandStar } from "@/components/shell/brand-mark";
 import { Wordmark } from "@/components/shell/wordmark";
 import { gbp, pct } from "@/lib/format";
 import { buildPlanState, sourceFindings, type Connections } from "@/lib/plan/build-state";
@@ -10,7 +11,7 @@ import { coachFollowUp, extractGoals } from "@/lib/plan/extract-goals";
 import { parseSaverState } from "@/lib/saver/schema";
 import { useSaver } from "@/lib/saver/use-saver-state";
 
-type Step = "intro" | "talk" | "confirm" | "connect" | "review";
+type Step = "loading" | "intro" | "talk" | "confirm" | "connect" | "review";
 type Line = { role: "coach" | "user"; text: string };
 
 const OPENING =
@@ -27,7 +28,7 @@ const EMPTY_CONNECTIONS: Connections = { banking: false, investments: false, oth
 export function ArrivalFlow() {
   const router = useRouter();
   const { save } = useSaver();
-  const [step, setStep] = useState<Step>("intro");
+  const [step, setStep] = useState<Step>("loading");
   const [lines, setLines] = useState<Line[]>([{ role: "coach", text: OPENING }]);
   const [draft, setDraft] = useState("");
   const [listening, setListening] = useState(false);
@@ -44,6 +45,12 @@ export function ArrivalFlow() {
     .join("\n");
   const extraction = extractGoals(transcript);
   const heardUser = lines.some((line) => line.role === "user");
+
+  useEffect(() => {
+    if (step !== "loading") return;
+    const timer = window.setTimeout(() => setStep("intro"), 2600);
+    return () => window.clearTimeout(timer);
+  }, [step]);
 
   const send = (text: string) => {
     const trimmed = text.trim();
@@ -105,6 +112,22 @@ export function ArrivalFlow() {
       router.push("/home");
     }, 700);
   };
+
+  if (step === "loading") {
+    return (
+      <button
+        type="button"
+        className="fixed inset-0 z-40 grid place-items-center bg-[url('/brand/image-mesh-gradient.jpg')] bg-cover bg-center"
+        onClick={() => setStep("intro")}
+        aria-label="Loading Nurture. Continue"
+      >
+        <span className="grid justify-items-center gap-6">
+          <BrandStar className="nurture-star size-12 text-[#1a1a1a]" />
+          <span className="font-display text-[56px] leading-none text-[#1a1a1a]">Nurture</span>
+        </span>
+      </button>
+    );
+  }
 
   if (step === "intro") {
     return (
