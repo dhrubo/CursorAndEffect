@@ -41,8 +41,10 @@ export async function POST(req: Request) {
       },
     );
     if (!response.ok || !response.body) {
-      console.error("[voice] ElevenLabs request failed", response.status);
-      return Response.json({ error: "The voice service is unavailable." }, { status: 502 });
+      const detail = (await response.json().catch(() => null)) as { detail?: { message?: unknown } } | null;
+      const message = typeof detail?.detail?.message === "string" ? detail.detail.message : `status ${response.status}`;
+      console.error("[voice] ElevenLabs request failed", response.status, message);
+      return Response.json({ error: message }, { status: 502 });
     }
 
     return new Response(response.body, {
