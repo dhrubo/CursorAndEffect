@@ -3,14 +3,12 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { GlassCard, MeshBand, WhiteSheet } from "@/components/shell/surface";
-import { useRouter } from "next/navigation";
 import { AllocationView } from "@/components/plan/allocation-view";
 import { SignpostList, WarningList } from "@/components/plan/alerts";
 import { DebtPayoffChart, DebtStrategySummary } from "@/components/plan/debt-view";
 import { OverpayVsSaveView, RemortgageView } from "@/components/plan/mortgage-view";
 import { PriorityLadder } from "@/components/plan/priority-ladder";
 import { QuickWins } from "@/components/plan/quick-wins";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { compareDebtStrategies, repayableDebts } from "@/lib/finance/debt";
@@ -21,8 +19,7 @@ import { deriveProfile } from "@/lib/saver/derive-profile";
 import { useSaver } from "@/lib/saver/use-saver-state";
 
 export default function MoneyHealthPage() {
-  const { state, loaded, save, clear } = useSaver();
-  const router = useRouter();
+  const { state, loaded, save } = useSaver();
   const profile = useMemo(() => (state ? deriveProfile(state) : null), [state]);
   const [amountText, setAmountText] = useState("");
 
@@ -44,10 +41,6 @@ export default function MoneyHealthPage() {
       amountText={amountText || String(profile.nextAmount)}
       onAmountText={setAmountText}
       profile={profile}
-      onReset={() => {
-        clear();
-        router.push("/");
-      }}
       onCommit={(nextAmount) => save({ ...state, profile: { ...state.profile, nextAmount } })}
     />
   );
@@ -59,14 +52,12 @@ function HealthView({
   amountText,
   onAmountText,
   onCommit,
-  onReset,
 }: {
   profile: ReturnType<typeof deriveProfile>;
   amount: number;
   amountText: string;
   onAmountText: (value: string) => void;
   onCommit: (amount: number) => void;
-  onReset: () => void;
 }) {
   const plan = useMemo(() => buildPlan(profile, amount), [profile, amount]);
   const debts = useMemo(
@@ -101,9 +92,6 @@ function HealthView({
         Your emergency fund step feeds your Emergency fund plan.{" "}
         <Link href="/home" className="underline">Back to home</Link>
       </p>
-      <div className="flex justify-end">
-        <Button variant="ghost" size="sm" onClick={onReset}>Start again</Button>
-      </div>
       <Card>
         <CardHeader>
           <CardTitle>Where an extra amount goes</CardTitle>

@@ -5,7 +5,7 @@ import { gbp } from "@/lib/format";
 import { financialPosition, planInsights } from "@/lib/plan/insights";
 import type { Goal, SaverState } from "@/lib/saver/schema";
 
-export function PlanDashboard({ state, onReset }: { state: SaverState; onReset: () => void }) {
+export function PlanDashboard({ state }: { state: SaverState }) {
   const position = financialPosition(state);
   const summary = planInsights(state).join(" ") || "You're doing well against your goals.";
 
@@ -45,9 +45,6 @@ export function PlanDashboard({ state, onReset }: { state: SaverState; onReset: 
             </Link>
           ))}
         </div>
-        <button type="button" className="mt-6 text-sm text-[#1a1a1a]/60 underline-offset-4 hover:underline" onClick={onReset}>
-          Start again
-        </button>
       </section>
     </main>
   );

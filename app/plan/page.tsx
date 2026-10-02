@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { PencilIcon, RotateCcwIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 import { useAssistant } from "@/components/chat/assistant-provider";
 import { GoalForm } from "@/components/goals/goal-form";
 import { AllocationView } from "@/components/plan/allocation-view";
@@ -25,8 +24,7 @@ import { useGoals } from "@/lib/use-goals";
 import { useProfile } from "@/lib/use-profile";
 
 export default function PlanPage() {
-  const { profile, loaded, save, clear } = useProfile();
-  const router = useRouter();
+  const { profile, loaded, save } = useProfile();
 
   if (!loaded) {
     return <div className="mx-auto h-[60vh] w-full max-w-7xl animate-pulse px-4 py-8" />;
@@ -50,10 +48,6 @@ export default function PlanPage() {
     <PlanView
       profile={profile}
       onAmountCommit={(nextAmount) => save({ ...profile, nextAmount })}
-      onReset={() => {
-        clear();
-        router.push("/");
-      }}
     />
   );
 }
@@ -61,11 +55,9 @@ export default function PlanPage() {
 function PlanView({
   profile,
   onAmountCommit,
-  onReset,
 }: {
   profile: Profile;
   onAmountCommit: (amount: number) => void;
-  onReset: () => void;
 }) {
   const [amountText, setAmountText] = useState(String(profile.nextAmount));
   const amount = Math.max(0, Number(amountText) || 0);
@@ -100,9 +92,6 @@ function PlanView({
               <Link href="/#profile">
                 <PencilIcon /> Edit numbers
               </Link>
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onReset}>
-              <RotateCcwIcon /> Start again
             </Button>
           </div>
         </div>
