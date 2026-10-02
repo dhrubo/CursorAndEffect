@@ -84,6 +84,14 @@ export const PreferencesSchema = z.object({
   signals: z.array(z.string()).max(8),
 });
 
+export const PlanEventSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(80),
+  date: isoDate,
+  cost: money,
+  goalId: z.string().optional(),
+});
+
 export const CoachEventSchema = z.object({
   id: z.string(),
   kind: z.enum(["spend", "idle", "replan", "protect"]),
@@ -106,6 +114,7 @@ export const SaverStateSchema = z.object({
   transactions: z.array(TransactionSchema).max(400),
   preferences: PreferencesSchema,
   coachEvents: z.array(CoachEventSchema).max(40),
+  planEvents: z.array(PlanEventSchema).max(20).optional(),
 });
 
 export type Goal = z.infer<typeof GoalSchema>;
@@ -114,6 +123,7 @@ export type Transaction = z.infer<typeof TransactionSchema>;
 export type TxCategory = (typeof TX_CATEGORIES)[number];
 export type Preferences = z.infer<typeof PreferencesSchema>;
 export type CoachEvent = z.infer<typeof CoachEventSchema>;
+export type PlanEvent = z.infer<typeof PlanEventSchema>;
 export type SaverState = z.infer<typeof SaverStateSchema>;
 
 export function parseSaverState(value: unknown): SaverState | null {

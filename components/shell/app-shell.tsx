@@ -5,7 +5,7 @@ import { DemoControls } from "@/components/demo/demo-controls";
 import { CoachProvider } from "./coach-provider";
 import { NavBar } from "./nav-bar";
 
-const MESH = [/^\/$/, /^\/home/, /^\/coach/, /\/wrapped$/];
+const MESH = [/^\/$/, /^\/coach/, /\/wrapped$/];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             you think through saving. It is not regulated financial advice. Products and rates are fictional.
           </p>
         </footer>
-        <NavBar />
+        {pathname !== "/" && <NavBar />}
         <DemoControls />
       </div>
     </CoachProvider>
