@@ -53,6 +53,33 @@ export function milestoneCopy(name: string, wins: string, focus: string, next: s
   };
 }
 
+export function neroReminderCopy(): CoachCopy {
+  return {
+    title: "Before that coffee",
+    detail: "Remember, you can have your coffee at the office, skip that Nero stop",
+  };
+}
+
+export const REMINDER_COPY: CoachCopy[] = [
+  neroReminderCopy(),
+  {
+    title: "Before that night out",
+    detail: "That £46 puts Bali on 12 Sep instead of 4 Sep. Keep the plan, or put £20 toward Bali.",
+  },
+  {
+    title: "Spotify is coming up",
+    detail: "Spotify, £12.99, usually leaves around the 4th. On Bali, that is about 1 day later.",
+  },
+  {
+    title: "£28 is still yours",
+    detail: "£28 left this week. Move it to Bali and arrive 2 days earlier.",
+  },
+];
+
+export function reminderAt(index: number): CoachCopy {
+  return REMINDER_COPY[index % REMINDER_COPY.length];
+}
+
 export const BANNED_PHRASES = [
   "failed",
   "bad",
@@ -74,5 +101,6 @@ export function allSampleCopy(): string[] {
     replanCopy("Bali", 52, "2026-09-04", "2026-09-18"),
     bounceBackCopy("Bali", "2026-09-04"),
     milestoneCopy("Jordyn", "Bali is moving.", "One thing to look at: nights out.", "the next £45."),
+    ...REMINDER_COPY,
   ].flatMap((copy) => [copy.title, copy.detail]);
 }
