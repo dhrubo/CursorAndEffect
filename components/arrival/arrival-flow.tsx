@@ -11,7 +11,7 @@ import { coachFollowUp, extractGoals } from "@/lib/plan/extract-goals";
 import { parseSaverState } from "@/lib/saver/schema";
 import { useSaver } from "@/lib/saver/use-saver-state";
 
-type Step = "loading" | "intro" | "talk" | "confirm" | "connect" | "review";
+type Step = "loading" | "welcome" | "intro" | "talk" | "confirm" | "connect" | "review";
 type Line = { role: "coach" | "user"; text: string };
 
 const OPENING =
@@ -25,10 +25,29 @@ const SOURCES: { id: keyof Connections; title: string; items: string[] }[] = [
 
 const EMPTY_CONNECTIONS: Connections = { banking: false, investments: false, other: false };
 
+const WELCOME = [
+  {
+    title: "Build your goals",
+    body: "Tell Nurture what you're saving for. A trip, a home, a safety net. Give it a name, a date, and a photo. That's your plan.",
+    icon: "target" as const,
+  },
+  {
+    title: "Connect your accounts",
+    body: "Link your bank in seconds. Nurture reads your income and spending to work out exactly how fast you're moving toward each goal.",
+    icon: "accounts" as const,
+  },
+  {
+    title: "Stay on track",
+    body: "Nurture watches your spending and tells you what it means for your goals — coaching you to get you back on track.",
+    icon: "track" as const,
+  },
+];
+
 export function ArrivalFlow() {
   const router = useRouter();
   const { save } = useSaver();
   const [step, setStep] = useState<Step>("loading");
+  const [welcomeIndex, setWelcomeIndex] = useState(0);
   const [lines, setLines] = useState<Line[]>([{ role: "coach", text: OPENING }]);
   const [draft, setDraft] = useState("");
   const [listening, setListening] = useState(false);
@@ -48,7 +67,7 @@ export function ArrivalFlow() {
 
   useEffect(() => {
     if (step !== "loading") return;
-    const timer = window.setTimeout(() => setStep("intro"), 2600);
+    const timer = window.setTimeout(() => setStep("welcome"), 2600);
     return () => window.clearTimeout(timer);
   }, [step]);
 
@@ -118,7 +137,7 @@ export function ArrivalFlow() {
       <button
         type="button"
         className="fixed inset-0 z-40 grid place-items-center bg-[url('/brand/image-mesh-gradient.jpg')] bg-cover bg-center"
-        onClick={() => setStep("intro")}
+        onClick={() => setStep("welcome")}
         aria-label="Loading Nurture. Continue"
       >
         <span className="grid justify-items-center gap-6">
@@ -126,6 +145,43 @@ export function ArrivalFlow() {
           <span className="font-display text-[56px] leading-none text-[#1a1a1a]">Nurture</span>
         </span>
       </button>
+    );
+  }
+
+  if (step === "welcome") {
+    const slide = WELCOME[welcomeIndex];
+    const last = welcomeIndex === WELCOME.length - 1;
+    const join = () => {
+      if (last) setStep("intro");
+      else setWelcomeIndex((current) => current + 1);
+    };
+    return (
+      <main className="fixed inset-0 z-40 flex flex-col bg-[url('/brand/image-mesh-gradient.jpg')] bg-cover bg-center px-8 pb-12 pt-16 text-[#1a1a1a]">
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
+          <WelcomeIcon name={slide.icon} />
+          <div className="grid max-w-xs gap-3">
+            <h1 className="font-display text-[28px] leading-tight font-normal">{slide.title}</h1>
+            <p className="text-[15px] leading-relaxed">{slide.body}</p>
+          </div>
+        </div>
+        <div className="mx-auto mb-10 flex w-36 gap-2" aria-hidden="true">
+          {WELCOME.map((item, index) => (
+            <span
+              key={item.title}
+              className={`h-[3px] flex-1 rounded-full ${index === welcomeIndex ? "bg-[#1a1a1a]" : "bg-[#1a1a1a]/30"}`}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          className={`mx-auto w-full max-w-xs rounded-full px-6 py-3 text-[17px] ${
+            last ? "bg-[#1a1a1a] text-white" : "border border-[#1a1a1a] bg-transparent text-[#1a1a1a]"
+          }`}
+          onClick={join}
+        >
+          Join
+        </button>
+      </main>
     );
   }
 
@@ -347,6 +403,43 @@ export function ArrivalFlow() {
         </button>
       </div>
     </main>
+  );
+}
+
+function WelcomeIcon({ name }: { name: "target" | "accounts" | "track" }) {
+  if (name === "target") {
+    return (
+      <svg viewBox="0 0 48 48" className="size-16" aria-hidden="true">
+        <circle cx="24" cy="24" r="16" fill="none" stroke="#1a1a1a" strokeWidth="2" />
+        <circle cx="24" cy="24" r="8" fill="none" stroke="#1a1a1a" strokeWidth="2" />
+        <circle cx="24" cy="24" r="2.5" fill="#1a1a1a" />
+      </svg>
+    );
+  }
+  if (name === "accounts") {
+    return (
+      <svg viewBox="0 0 48 48" className="size-16" aria-hidden="true">
+        <circle cx="24" cy="12" r="3.2" fill="#1a1a1a" />
+        <circle cx="14" cy="30" r="3.2" fill="#1a1a1a" />
+        <circle cx="34" cy="30" r="3.2" fill="#1a1a1a" />
+        <circle cx="20" cy="20" r="1.4" fill="#1a1a1a" />
+        <circle cx="28" cy="20" r="1.4" fill="#1a1a1a" />
+        <circle cx="24" cy="28" r="1.4" fill="#1a1a1a" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 48 48" className="size-16" aria-hidden="true">
+      <path
+        d="M14 34c8 0 8-14 16-14"
+        fill="none"
+        stroke="#1a1a1a"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <circle cx="14" cy="34" r="3" fill="#1a1a1a" />
+      <path d="M30 16l6 4-6 4" fill="none" stroke="#1a1a1a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
