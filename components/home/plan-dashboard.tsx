@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { gbp } from "@/lib/format";
 import { financialPosition, planInsights } from "@/lib/plan/insights";
-import type { Goal, SaverState } from "@/lib/saver/schema";
+import type { SaverState } from "@/lib/saver/schema";
 
 export function PlanDashboard({ state }: { state: SaverState }) {
   const position = financialPosition(state);
@@ -41,7 +41,7 @@ export function PlanDashboard({ state }: { state: SaverState }) {
               className="grid gap-4 rounded-[18px] border border-[#1a1a1a] p-4 transition-colors hover:bg-[#1a1a1a]/5"
             >
               <p className="max-w-[8rem] text-[18px] leading-tight">{goal.name}</p>
-              <GoalRing name={goal.name} value={progressOf(goal)} />
+              <GoalRing name={goal.name} saved={goal.savedSoFar} target={goal.targetAmount} />
             </Link>
           ))}
         </div>
@@ -50,30 +50,37 @@ export function PlanDashboard({ state }: { state: SaverState }) {
   );
 }
 
-function progressOf(goal: Goal): number {
-  if (goal.targetAmount <= 0) return 0;
-  return Math.min(100, Math.round((goal.savedSoFar / goal.targetAmount) * 100));
+function progressOf(saved: number, target: number): number {
+  if (target <= 0) return 0;
+  return Math.min(100, Math.round((saved / target) * 100));
 }
 
-function GoalRing({ name, value }: { name: string; value: number }) {
+function GoalRing({ name, saved, target }: { name: string; saved: number; target: number }) {
+  const value = progressOf(saved, target);
   const radius = 28;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
   return (
-    <svg viewBox="0 0 72 72" className="mx-auto size-16" role="img" aria-label={`${name} is ${value}% saved`}>
-      <circle cx="36" cy="36" r={radius} fill="none" stroke="#e4e4e4" strokeWidth="8" />
-      <circle
-        cx="36"
-        cy="36"
-        r={radius}
-        fill="none"
-        stroke="#3dce3a"
-        strokeWidth="8"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform="rotate(-90 36 36)"
-      />
-    </svg>
+    <div className="grid justify-items-center gap-2">
+      <svg viewBox="0 0 72 72" className="size-16" role="img" aria-label={`${name}: ${gbp(saved)} saved of ${gbp(target)}`}>
+        <circle cx="36" cy="36" r={radius} fill="none" stroke="#e4e4e4" strokeWidth="8" />
+        <circle
+          cx="36"
+          cy="36"
+          r={radius}
+          fill="none"
+          stroke="#3dce3a"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          transform="rotate(-90 36 36)"
+        />
+      </svg>
+      <p className="text-center text-[13px] leading-tight tabular-nums">
+        {gbp(saved)} saved
+        <span className="block text-[#1a1a1a]/60">of {gbp(target)}</span>
+      </p>
+    </div>
   );
 }

@@ -37,7 +37,11 @@ export default function GoalsPage() {
               <Link key={goal.id} href={`/goals/${goal.id}`} className="grid gap-3 rounded-[18px] border border-[#1a1a1a] p-4">
                 <Image src={goalImage(goal)} alt="" width={64} height={64} unoptimized className="size-14 rounded-2xl object-cover" />
                 <p className="text-[18px] leading-tight">{goal.name}</p>
-                <p className="text-[14px] text-[#1a1a1a]/60">
+                <p className="text-[14px] leading-tight tabular-nums">
+                  {gbp(goal.savedSoFar)} saved
+                  <span className="block text-[#1a1a1a]/60">of {gbp(goal.targetAmount)}</span>
+                </p>
+                <p className="text-[13px] text-[#1a1a1a]/60">
                   {gbp(projection.amountLeft)} to go
                   {projection.etaDate ? ` · ${formatDayMonth(projection.etaDate)}` : ""}
                 </p>
