@@ -6,7 +6,7 @@ import { PlanDashboard } from "@/components/home/plan-dashboard";
 import { useSaver } from "@/lib/saver/use-saver-state";
 
 export default function HomePage() {
-  const { state, loaded, clear } = useSaver();
+  const { state, loaded } = useSaver();
   const router = useRouter();
 
   useEffect(() => {
@@ -16,12 +16,6 @@ export default function HomePage() {
   if (!loaded || !state) return <div className="h-screen" />;
 
   return (
-    <PlanDashboard
-      state={state}
-      onReset={() => {
-        clear();
-        router.push("/");
-      }}
-    />
+    <PlanDashboard state={state} />
   );
 }
