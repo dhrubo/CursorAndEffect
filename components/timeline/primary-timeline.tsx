@@ -1,3 +1,4 @@
+import { gbp } from "@/lib/format";
 import { formatDayMonth } from "@/lib/saver/dates";
 import type { Goal } from "@/lib/saver/schema";
 import { buildCheckpoints } from "@/lib/timeline/checkpoints";
@@ -23,7 +24,7 @@ export function PrimaryTimeline({
 
   return (
     <div className="grid gap-3">
-      <svg viewBox="0 0 320 88" className="w-full" role="img" aria-label={`${goal.name} journey`}>
+      <svg viewBox="0 0 320 88" className="w-full" role="img" aria-label={`${goal.name}: ${gbp(goal.savedSoFar)} saved of ${gbp(goal.targetAmount)}`}>
         <line x1="16" y1="44" x2="304" y2="44" stroke={track} strokeWidth="4" strokeLinecap="round" />
         {impact && impact.deltaDays > 0 && (
           <line
@@ -48,6 +49,10 @@ export function PrimaryTimeline({
           );
         })}
       </svg>
+      <div className={`flex justify-between gap-3 text-[13px] ${light ? "text-white/80" : "text-[#1a1a1a]/60"}`}>
+        <span>{gbp(goal.savedSoFar)} saved</span>
+        <span>Goal {gbp(goal.targetAmount)}</span>
+      </div>
       <div className={`flex justify-between text-[13px] ${light ? "text-white/80" : "text-[#1a1a1a]/60"}`}>
         <span>Today</span>
         <span>{projection.etaDate ? formatDayMonth(projection.etaDate) : "Set a save"}</span>
