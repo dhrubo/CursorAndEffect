@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BotIcon, LoaderCircleIcon, RotateCcwIcon, SendIcon, SquareIcon } from "lucide-react";
+import { LoaderCircleIcon, RotateCcwIcon, SendIcon, SquareIcon } from "lucide-react";
+import { FourPointStar } from "@/components/four-point-star";
 import { repayableDebts } from "@/lib/finance/debt";
 import { gbp } from "@/lib/format";
 import type { Profile } from "@/lib/profile";
@@ -57,18 +58,18 @@ export function ChatPanel({
     <Card
       className={cn(
         "flex min-h-0 flex-col gap-0 py-0",
-        variant === "sidebar" ? "h-[70vh] lg:h-full" : "h-full rounded-none border-0 shadow-none ring-0",
+        variant === "sidebar" ? "h-[70vh] bg-nuture-paper lg:h-full" : "h-full rounded-none border-0 bg-nuture-paper shadow-none ring-0",
         className,
       )}
     >
       <div className="flex items-center justify-between gap-2 border-b px-4 py-3 pr-12">
         <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <BotIcon className="size-4" />
+          <span className="flex size-11 items-center justify-center rounded-full border border-white bg-white/70 text-nuture-ink backdrop-blur-md">
+            <FourPointStar className="text-lg" />
           </span>
           <div>
-            <p className="text-sm font-medium">Money guide</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[15px] font-medium">Coach</p>
+            <p className="text-[13px] text-nuture-ink/60">
               {assistant.scripted
                 ? "Scripted replies. Numbers still come from the calculators."
                 : "Powered by Grok. Numbers come from the calculators."}
@@ -97,14 +98,14 @@ export function ChatPanel({
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
         {!active && (
           <p className="text-sm text-muted-foreground">
-            Add your numbers, or load a demo household, and the guide can talk about that plan.
+            Add your numbers, or load a demo household, and Coach can talk about that plan.
           </p>
         )}
 
         {active && assistant.messages.length === 0 && (
           <div className="grid gap-3">
-            <p className="text-sm text-muted-foreground">
-              Ask how you&apos;re doing, or try a what-if. Every figure is run through the same calculators as the plan.
+            <p className="text-[15px] text-nuture-ink/60">
+              Hey {active.name.trim() || "there"}, what can I help with today
             </p>
             <div className="grid gap-2">
               {suggestions(active).map((prompt) => (
@@ -112,7 +113,7 @@ export function ChatPanel({
                   key={prompt}
                   type="button"
                   onClick={() => send(prompt)}
-                  className="rounded-lg border bg-background px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                  className="min-h-11 rounded-full border border-nuture-ink/10 bg-white px-4 py-2 text-left text-[15px] transition-colors hover:bg-nuture-cream"
                 >
                   {prompt}
                 </button>
@@ -124,7 +125,7 @@ export function ChatPanel({
         {assistant.messages.map((message) =>
           message.role === "user" ? (
             <div key={message.id} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground">
+              <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-nuture-lime px-3 py-2 text-sm text-white">
                 {message.parts.map((part, index) => (part.type === "text" ? <span key={index}>{part.text}</span> : null))}
               </div>
             </div>
@@ -148,7 +149,7 @@ export function ChatPanel({
                 key={prompt}
                 type="button"
                 onClick={() => send(prompt)}
-                className="rounded-full border px-3 py-1 text-xs hover:bg-accent"
+                className="min-h-11 rounded-full border border-nuture-ink/10 bg-white px-4 text-[13px] hover:bg-nuture-cream"
               >
                 {prompt}
               </button>
@@ -189,7 +190,7 @@ export function ChatPanel({
           rows={2}
           disabled={!active}
           placeholder={active ? "e.g. What if I put £200 a month extra on my debts?" : "Add your numbers to start"}
-          aria-label="Message the money guide"
+          aria-label="Message Coach"
           className="max-h-32 min-h-10 flex-1 resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
         />
         {busy ? (

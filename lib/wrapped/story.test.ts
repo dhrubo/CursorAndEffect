@@ -15,6 +15,11 @@ describe("wrapped story", () => {
     });
     expect(story.beats.map((beat) => beat.id)).toEqual(["saved", "best-month", "shift", "milestones", "debt", "next"]);
     expect(story.beats.every((beat) => beat.title && beat.body && beat.figure)).toBe(true);
+    expect(story.beats.at(-1)?.kicker).toBe("Next chapter");
+    expect(story.pin.name.length).toBeGreaterThan(0);
+    expect(story.pin.eta.length).toBeGreaterThan(0);
+    expect(story.beats.every((beat) => !beat.figure.includes("%"))).toBe(true);
     expect(story.share.name).toBe("Priya");
+    expect(story.share.goal).toBe(story.pin.name);
   });
 });

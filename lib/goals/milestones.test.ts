@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PERSONAS } from "@/data/personas";
 import { buildPlan } from "@/lib/finance/ladder";
-import { deriveMilestones, nextMilestone } from "./milestones";
+import { deriveMilestones, distanceLeftLine, nextMilestone, type Milestone } from "./milestones";
 import type { Goal } from "./model";
 
 const today = new Date(2026, 9, 2);
@@ -59,6 +59,20 @@ describe("milestones", () => {
     const appended = milestones.at(-1);
     expect(appended).toMatchObject({ id: "goal:holiday", label: "Cornwall week", source: "goal", current: 200, target: 800 });
     expect(appended?.projectedDate).toBeDefined();
+  });
+
+  it("headlines distance left and a spoken date", () => {
+    const milestone: Milestone = {
+      id: "starter-buffer",
+      label: "Starter buffer",
+      current: 389,
+      target: 1000,
+      pct: 39,
+      source: "ladder",
+      projectedDate: "2026-11-02",
+    };
+    expect(distanceLeftLine(milestone)).toBe("£611 left · around 2 Nov");
+    expect(distanceLeftLine(milestone)).not.toContain("%");
   });
 
   it("brings a projected date forward when freed spending is included", () => {

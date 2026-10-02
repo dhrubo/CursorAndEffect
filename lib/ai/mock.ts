@@ -128,7 +128,24 @@ function debtText(profile: Profile, extra: number | undefined): { text: string; 
   };
 }
 
+function friend(name: string, text: string): string {
+  const who = name.trim();
+  if (!who || text.toLowerCase().startsWith(who.toLowerCase())) return text;
+  return `${who}, ${text}`;
+}
+
 export function buildMockReply(input: {
+  profile: Profile;
+  text: string;
+  goals?: Goal[];
+  history?: HistorySnapshot[];
+  today?: Date;
+}): MockReply {
+  const reply = composeMockReply(input);
+  return { ...reply, text: friend(input.profile.name, reply.text) };
+}
+
+function composeMockReply(input: {
   profile: Profile;
   text: string;
   goals?: Goal[];

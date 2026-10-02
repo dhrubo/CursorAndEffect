@@ -1,4 +1,5 @@
-import { addMonths, isoDate } from "@/lib/dates";
+import { addMonths, isoDate, spokenDate } from "@/lib/dates";
+import { gbp } from "@/lib/format";
 import { compareDebtStrategies, repayableDebts } from "@/lib/finance/debt";
 import type { Plan } from "@/lib/finance/ladder";
 import { lisaEligibility } from "@/lib/finance/savings";
@@ -204,4 +205,17 @@ export function deriveMilestones(input: {
 
 export function nextMilestone(milestones: Milestone[]): Milestone | undefined {
   return milestones.find((milestone) => milestone.pct < 100);
+}
+
+export function amountLeft(milestone: Milestone): number {
+  return Math.max(0, Math.round(milestone.target - milestone.current));
+}
+
+/** Distance left and a spoken date. Percent is never the headline. */
+export function distanceLeftLine(milestone: Milestone): string {
+  if (milestone.pct >= 100) {
+    return milestone.crossedAt ? `Reached · ${spokenDate(milestone.crossedAt)}` : "Reached";
+  }
+  const left = `${gbp(amountLeft(milestone))} left`;
+  return milestone.projectedDate ? `${left} · around ${spokenDate(milestone.projectedDate)}` : left;
 }

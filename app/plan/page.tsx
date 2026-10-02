@@ -168,25 +168,25 @@ function PlanView({
           </StatCard>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Goals and milestones</CardTitle>
-            <CardDescription>
-              Filled markers are reached. The next one is highlighted with a date.{" "}
+        <section id="goals" className="grid scroll-mt-20 gap-4">
+          <div className="grid gap-1">
+            <h2 className="font-serif text-[2rem] leading-tight text-nuture-ink">Goals</h2>
+            <p className="text-[15px] text-nuture-ink/60">
+              Distance left, then a date.{" "}
               <Link href="/wrapped" className="underline">
                 Open Wrapped
               </Link>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+            </p>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
             <MilestoneTrack milestones={milestones} />
             {goalsLoaded ? (
               <GoalForm goals={goals} onChange={saveGoals} />
             ) : (
-              <div className="h-40 animate-pulse rounded-lg bg-muted" />
+              <div className="h-40 animate-pulse rounded-[20px] bg-nuture-cream" />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
         <Card className="ring-primary/30">
           <CardHeader>

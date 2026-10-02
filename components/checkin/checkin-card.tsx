@@ -1,16 +1,8 @@
 "use client";
 
 import type { CheckIn } from "@/lib/checkin/build";
-import { gbp } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAssistant } from "@/components/chat/assistant-provider";
-
-const STANDING: Record<CheckIn["standing"], string> = {
-  comfortable: "Solid spot",
-  steady: "Steady",
-  stretched: "Tight month",
-};
 
 export function CheckInCard({ checkin }: { checkin: CheckIn }) {
   const { openWith } = useAssistant();
@@ -18,37 +10,44 @@ export function CheckInCard({ checkin }: { checkin: CheckIn }) {
   const risk = checkin.risks[0];
 
   return (
-    <Card className="ring-primary/20">
-      <CardHeader>
-        <CardDescription>{STANDING[checkin.standing]}</CardDescription>
-        <CardTitle className="text-lg">{checkin.headline}</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        <p className="text-sm text-muted-foreground">{checkin.summary}</p>
+    <section className="grid gap-4 rounded-[20px] bg-nuture-cream p-6 text-nuture-ink">
+      <h2 className="font-serif text-[2rem] leading-[1.15]">{checkin.headline}</h2>
+      <p className="text-[15px] text-nuture-ink/60">{checkin.summary}</p>
+      <div className="grid gap-3 text-[15px]">
         {win && (
-          <p className="text-sm">
-            <span className="font-medium">Going well. </span>
+          <p>
+            <span className="font-medium">One thing going well. </span>
             {win.title}. {win.detail}
           </p>
         )}
         {risk && (
-          <p className="text-sm">
-            <span className="font-medium">Worth a look. </span>
+          <p>
+            <span className="font-medium">One thing to watch. </span>
             {risk.title}
           </p>
         )}
-        <p className="text-sm">
-          Next: {checkin.nextAction.title}. Spare cash is {gbp(checkin.figures.monthlySurplus)} a month.
+        <p>
+          <span className="font-medium">Next step. </span>
+          {checkin.nextAction.title}. {checkin.nextAction.detail}
         </p>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={() => openWith("How am I doing?")}>
-            How am I doing?
-          </Button>
-          <Button type="button" variant="outline" onClick={() => openWith("What spending could I cut?")}>
-            Spending idea
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <Button
+          type="button"
+          className="min-h-11 rounded-full bg-nuture-ink px-5 text-[17px] text-white hover:bg-nuture-ink/90"
+          onClick={() => openWith("How am I doing?")}
+        >
+          How am I doing
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 rounded-full border-nuture-ink/15 bg-transparent px-5 text-[17px] text-nuture-ink hover:bg-white/50"
+          onClick={() => openWith("What spending could I cut?")}
+        >
+          A spending idea
+        </Button>
+      </div>
+    </section>
   );
 }
