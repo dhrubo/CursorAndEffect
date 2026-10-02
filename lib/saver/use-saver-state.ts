@@ -5,9 +5,10 @@ import { DEMO_TODAY, goalsForLegacyProfile } from "@/data/saver-personas";
 import { parseProfile, type Profile } from "@/lib/profile";
 import { parseSaverState, type SaverState } from "./schema";
 
-const STORAGE_KEY = "nuture.state.v2";
+const STORAGE_KEY = "nurture.state.v2";
+const PREVIOUS_KEY = "nuture.state.v2";
 const LEGACY_KEY = "nextpound.profile.v1";
-const CHANGE_EVENT = "nuture-state-change";
+const CHANGE_EVENT = "nurture-state-change";
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -58,6 +59,13 @@ export function useSaver() {
 
   useEffect(() => {
     if (raw !== null) return;
+    const previous = window.localStorage.getItem(PREVIOUS_KEY);
+    if (previous) {
+      window.localStorage.setItem(STORAGE_KEY, previous);
+      window.localStorage.removeItem(PREVIOUS_KEY);
+      window.dispatchEvent(new Event(CHANGE_EVENT));
+      return;
+    }
     const legacy = window.localStorage.getItem(LEGACY_KEY);
     if (!legacy) return;
     try {

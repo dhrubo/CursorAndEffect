@@ -1,4 +1,4 @@
-# Nuture
+# Nurture
 
 A warm savings coach. Set a near-term plan, watch it come together, and see what a spend does to the arrival date. The UK priority ladder still lives on Money health.
 

@@ -119,7 +119,7 @@ export function ChatPanel({ prefill }: { prefill?: string }) {
           }}
           rows={2}
           placeholder="Ask about a plan"
-          aria-label="Message Nuture"
+          aria-label="Message Nurture"
           className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl border border-white/40 bg-white/15 px-3 py-2 text-sm text-white outline-none placeholder:text-white/70"
         />
         {busy ? (

@@ -144,8 +144,11 @@
   color: #ffffff;
 }
 
-.wordmark-knockout {
-  mix-blend-mode: screen;
+.wordmark-gradient {
+  background: linear-gradient(100deg, #5cd719, #c8e000);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .goal-card-active {

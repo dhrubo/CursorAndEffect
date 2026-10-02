@@ -16,7 +16,7 @@ const display = Inknut_Antiqua({
 });
 
 export const metadata: Metadata = {
-  title: "Nuture | See your plans come together",
+  title: "Nurture | See your plans come together",
   description:
     "A warm savings coach. Set a plan, watch it come together, and choose what a spend does to the date. Guidance, not regulated financial advice.",
 };

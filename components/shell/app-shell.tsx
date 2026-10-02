@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex-1 pb-28">{children}</div>
         <footer className={`px-4 pb-24 text-[11px] ${mesh ? "text-white/75" : "text-muted-foreground"}`}>
           <p>
-            <strong className={mesh ? "text-white" : "text-foreground"}>Guidance, not advice.</strong> Nuture helps
+            <strong className={mesh ? "text-white" : "text-foreground"}>Guidance, not advice.</strong> Nurture helps
             you think through saving. It is not regulated financial advice. Products and rates are fictional.
           </p>
         </footer>
