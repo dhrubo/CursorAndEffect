@@ -1,6 +1,11 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { CalculatorIcon, LoaderCircleIcon } from "lucide-react";
 import type { AppUIMessage } from "@/lib/ai/tools";
+import { formatDayMonth } from "@/lib/saver/dates";
+import { useSaver } from "@/lib/saver/use-saver-state";
+import type { Goal } from "@/lib/saver/schema";
 import type { SavingsSearch } from "@/lib/finance/savings";
 import { gbp, pct } from "@/lib/format";
 import { AllocationView } from "@/components/plan/allocation-view";
@@ -16,6 +21,13 @@ const TOOL_LABELS: Record<string, string> = {
   "tool-compare_overpay_vs_save": "Comparing overpaying vs saving",
   "tool-find_savings_products": "Searching savings products",
   "tool-compare_remortgage_options": "Comparing remortgage deals",
+  "tool-get_goal_status": "Checking the plan",
+  "tool-simulate_spend": "Seeing what the spend does",
+  "tool-suggest_swaps": "Looking at swaps",
+  "tool-find_idle_money": "Looking for spare money",
+  "tool-replan_goal": "Replanning",
+  "tool-milestone_check": "Checking in",
+  "tool-propose_goal": "Drafting a plan",
 };
 
 export function isToolPart(part: Part): boolean {
@@ -73,6 +85,82 @@ export function ToolPart({ part }: { part: Part }) {
           {"error" in part.output ? <Muted>{part.output.error}</Muted> : <RemortgageView result={part.output} limit={3} />}
         </Shell>
       );
+    case "tool-get_goal_status":
+      return (
+        <Shell title={"error" in part.output ? "Plan" : part.output.name}>
+          {"error" in part.output ? (
+            <Muted>{part.output.error}</Muted>
+          ) : (
+            <p>
+              {gbp(part.output.amountLeft)} still to go
+              {part.output.etaDate ? ` · ${formatDayMonth(part.output.etaDate)}` : ""}.
+            </p>
+          )}
+        </Shell>
+      );
+    case "tool-simulate_spend":
+      return (
+        <Shell title={"error" in part.output ? "Spend" : part.output.goalName}>
+          {"error" in part.output ? (
+            <Muted>{part.output.error}</Muted>
+          ) : (
+            <p>
+              {gbp(part.output.amount)} moves it by {part.output.deltaDays} days
+              {part.output.divertedEta ? ` · ${formatDayMonth(part.output.divertedEta)}` : ""}.
+            </p>
+          )}
+        </Shell>
+      );
+    case "tool-suggest_swaps":
+      return (
+        <Shell title={part.output.goalName}>
+          {part.output.swaps.map((swap) => (
+            <p key={swap.category}>{swap.idea}</p>
+          ))}
+        </Shell>
+      );
+    case "tool-find_idle_money":
+      return (
+        <Shell title="Spare money">
+          <p>{gbp(part.output.spareAboveBuffer)} above the buffer in the current account.</p>
+          <p className="text-xs text-muted-foreground">ISA room {gbp(part.output.isaAllowanceLeft)}. Lifetime ISA room {gbp(part.output.lisaAllowanceLeft)}.</p>
+        </Shell>
+      );
+    case "tool-replan_goal":
+      return (
+        <Shell title={"error" in part.output ? "Replan" : part.output.goalName}>
+          {"error" in part.output ? (
+            <Muted>{part.output.error}</Muted>
+          ) : (
+            <p>
+              {gbp(part.output.weeklyAmount)} a week, arriving {formatDayMonth(part.output.targetDate)}.
+            </p>
+          )}
+        </Shell>
+      );
+    case "tool-milestone_check":
+      return (
+        <Shell title={"error" in part.output ? "Check in" : `Hey ${part.output.name}`}>
+          {"error" in part.output ? (
+            <Muted>{part.output.error}</Muted>
+          ) : (
+            <div className="grid gap-1">
+              <p>{part.output.goingWell}</p>
+              <p>{part.output.focus}</p>
+              <p>{part.output.next}</p>
+            </div>
+          )}
+        </Shell>
+      );
+    case "tool-propose_goal":
+      return (
+        <Shell title={part.output.name}>
+          <p>
+            {gbp(part.output.targetAmount)} · {part.output.whyItMatters}
+          </p>
+          <PlanDraftButton draft={part.output} />
+        </Shell>
+      );
     default:
       return null;
   }
@@ -89,6 +177,50 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
       </div>
       {children}
     </div>
+  );
+}
+
+function PlanDraftButton({
+  draft,
+}: {
+  draft: { name: string; category: Goal["category"]; horizon: Goal["horizon"]; targetAmount: number; targetDate: string; whyItMatters: string };
+}) {
+  const { state, save } = useSaver();
+  if (!state) return null;
+  return (
+    <button
+      type="button"
+      className="mt-2 w-fit rounded-full bg-[#5cd719] px-3 py-2 text-sm text-white"
+      onClick={() => {
+        const id = `goal-${Date.now()}`;
+        const potId = `pot-${id}`;
+        const goal: Goal = {
+          id,
+          name: draft.name,
+          category: draft.category,
+          horizon: draft.horizon,
+          targetAmount: draft.targetAmount,
+          targetDate: draft.targetDate,
+          savedSoFar: 0,
+          potAccountId: potId,
+          isPrimary: state.goals.length === 0,
+          whyItMatters: draft.whyItMatters,
+          autoSave: { amount: 20, cadence: "weekly", enabled: true },
+          roundUps: false,
+          checkpointsCelebrated: [],
+        };
+        save({
+          ...state,
+          goals: [...state.goals, goal].slice(0, 6),
+          accounts: [
+            ...state.accounts,
+            { id: potId, provider: "Northwind", name: draft.name, balance: 0, aer: 4, kind: "easy_access", connected: true },
+          ],
+        });
+      }}
+    >
+      Plan this goal
+    </button>
   );
 }
 
