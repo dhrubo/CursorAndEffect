@@ -15,12 +15,7 @@ import { useAssistant } from "./assistant-provider";
 import { Markdown } from "./markdown";
 import { ToolPart, isToolPart } from "./tool-cards";
 
-const SAVER_SUGGESTIONS = [
-  "How am I doing",
-  "What if I spend £46 tonight",
-  "Where is my spare money sitting",
-  "Help me plan a new goal",
-];
+const SAVER_SUGGESTIONS = ["How am I doing on my goals?"];
 
 function suggestions(profile: Profile): string[] {
   const list = ["How am I doing?", "What spending could I cut?", `What should I do with my next ${gbp(profile.nextAmount)}?`];
@@ -28,6 +23,19 @@ function suggestions(profile: Profile): string[] {
   if (profile.mortgage && profile.mortgage.fixEndsInMonths <= 6) list.push("My mortgage deal ends soon. What are my options?");
   if (profile.buyingHome) list.push("Is a Lifetime ISA right for my house deposit?");
   return list.slice(0, 4);
+}
+
+function CoachBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="max-w-[85%]">
+      <span className="mb-1 flex size-8 items-center justify-center rounded-full bg-[#d6ee4a] text-[#1a1a1a]">
+        <BrandStar className="size-3.5" />
+      </span>
+      <div className="w-fit rounded-full bg-gradient-to-r from-[#c6e437] to-[#e7f56b] px-5 py-3 text-[16px] leading-snug text-[#1a1a1a]">
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function errorMessage(error: Error): string {
@@ -245,44 +253,29 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
   };
 
   return (
-    <div className="flex min-h-[50vh] flex-col text-[#1a1a1a]">
-      <div className="flex items-center justify-between px-1 py-2">
-        <div className="flex items-center gap-2 text-sm">
-          <BrandStar className="size-4" />
-          <span>Coach</span>
-        </div>
-        {messages.length > 0 && (
-          <button type="button" aria-label="Clear conversation" onClick={clear} className="rounded-full border border-[#1a1a1a] p-2">
-            <RotateCcwIcon className="size-4" />
-          </button>
-        )}
-      </div>
-      <div className="flex-1 space-y-4 overflow-y-auto py-4">
-        {messages.length === 0 && (
-          <div className="grid gap-2">
-            {SAVER_SUGGESTIONS.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => submit(suggestion)}
-                className="rounded-full border border-[#1a1a1a] px-4 py-2 text-left text-[15px]"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
-        )}
+    <div className="flex min-h-[70vh] flex-col bg-black text-white">
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto py-2">
+        <CoachBubble>What can I do for you?</CoachBubble>
+        {messages.length === 0 &&
+          SAVER_SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => submit(suggestion)}
+              className="ml-auto max-w-[85%] rounded-full bg-white px-5 py-3 text-left text-[16px] text-[#1a1a1a]"
+            >
+              {suggestion}
+            </button>
+          ))}
         {messages.map((message) =>
           message.role === "user" ? (
-            <div key={message.id} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl bg-[#1a1a1a] px-3 py-2 text-sm text-white">
-                {message.parts.map((part, index) => (part.type === "text" ? <span key={index}>{part.text}</span> : null))}
-              </div>
+            <div key={message.id} className="ml-auto max-w-[85%] rounded-full bg-white px-5 py-3 text-[16px] text-[#1a1a1a]">
+              {message.parts.map((part, index) => (part.type === "text" ? <span key={index}>{part.text}</span> : null))}
             </div>
           ) : (
-            <div key={message.id} className="grid gap-2 text-sm">
+            <div key={message.id} className="grid max-w-[85%] gap-2">
               {message.parts.map((part, index) => {
-                if (part.type === "text") return part.text ? <Markdown key={index}>{part.text}</Markdown> : null;
+                if (part.type === "text") return part.text ? <CoachBubble key={index}>{part.text}</CoachBubble> : null;
                 if (isToolPart(part)) return <ToolPart key={index} part={part} />;
                 return null;
               })}
@@ -290,19 +283,19 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
           ),
         )}
         {status === "submitted" && (
-          <div className="flex items-center gap-2 text-xs text-[#1a1a1a]/70">
+          <div className="flex items-center gap-2 text-xs text-white/70">
             <LoaderCircleIcon className="size-3.5 animate-spin" /> Thinking
           </div>
         )}
         {error && (
-          <div role="alert" className="rounded-2xl bg-white/15 px-3 py-2 text-sm">
+          <div role="alert" className="rounded-full bg-white/10 px-4 py-2 text-sm">
             {errorMessage(error)}
           </div>
         )}
         <div ref={bottomRef} />
       </div>
       <form
-        className="flex items-end gap-2"
+        className="mt-4 flex items-end gap-2"
         onSubmit={(event) => {
           event.preventDefault();
           submit(input);
@@ -317,22 +310,26 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
               submit(input);
             }
           }}
-          rows={2}
+          rows={1}
           placeholder="Ask about a plan"
           aria-label="Message Nurture"
-          className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl border border-[#1a1a1a]/30 bg-white px-3 py-2 text-sm text-[#1a1a1a] outline-none placeholder:text-[#1a1a1a]/50"
+          className="max-h-32 min-h-11 flex-1 resize-none rounded-full border border-white/25 bg-transparent px-4 py-3 text-[16px] text-white outline-none placeholder:text-white/45"
         />
         {busy ? (
-          <button type="button" aria-label="Stop" onClick={() => stop()} className="rounded-full bg-[#1a1a1a] p-3 text-white">
+          <button type="button" aria-label="Stop" onClick={() => stop()} className="rounded-full bg-white p-3 text-[#1a1a1a]">
             <SquareIcon className="size-4" />
           </button>
         ) : (
-          <button type="submit" aria-label="Send" disabled={!input.trim()} className="rounded-full bg-[#1a1a1a] p-3 text-white disabled:opacity-40">
+          <button type="submit" aria-label="Send" disabled={!input.trim()} className="rounded-full bg-white p-3 text-[#1a1a1a] disabled:opacity-40">
             <SendIcon className="size-4" />
           </button>
         )}
       </form>
-      <p className="px-1 pt-2 text-[11px] text-[#1a1a1a]/60">Guidance, not regulated advice. Your numbers are sent to Grok only when you chat.</p>
+      {messages.length > 0 && (
+        <button type="button" onClick={clear} className="mt-3 self-start text-[13px] text-white/50">
+          <RotateCcwIcon className="mr-1 inline size-3" /> Clear
+        </button>
+      )}
     </div>
   );
 }
