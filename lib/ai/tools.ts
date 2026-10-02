@@ -12,6 +12,7 @@ import { reviewSpending, suggestSpendingChanges } from "@/lib/spending/insights"
 import type { Profile } from "@/lib/profile";
 import { categoryLabel, categoryTotals, classifyTypology } from "@/lib/coach/typology";
 import { primaryGoal } from "@/lib/coach/rules";
+import { planWeekendRecovery } from "@/lib/coach/weekend";
 import { deriveProfile } from "@/lib/saver/derive-profile";
 import type { Goal, SaverState } from "@/lib/saver/schema";
 import { buildCheckpoints } from "@/lib/timeline/checkpoints";
@@ -240,6 +241,14 @@ export function createSaverTools(state: SaverState) {
             : `${goal.name} is funded.`,
         };
       },
+    }),
+
+    plan_weekend_recovery: tool({
+      description:
+        "Two or three ways to save back last weekend's eating-out overspend over the next few weeks, from the person's own usual spending: trim eating out, swap weekend plans for cheaper ones, or ease off another category. Each option has perWeek, weeks, total, and daysWonBack on the primary plan.",
+      inputSchema: z.object({}),
+      execute: async () =>
+        planWeekendRecovery(state) ?? ({ error: "Last weekend looked like a usual weekend, so there is nothing to win back." } as const),
     }),
 
     propose_goal: tool({

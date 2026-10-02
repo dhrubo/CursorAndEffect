@@ -9,6 +9,8 @@ import { gbp, months, pct } from "@/lib/format";
 import type { Goal } from "@/lib/goals/model";
 import type { HistorySnapshot } from "@/lib/history";
 import type { Profile } from "@/lib/profile";
+import { planWeekendRecovery } from "@/lib/coach/weekend";
+import type { SaverState } from "@/lib/saver/schema";
 import {
   reviewSpending,
   suggestSpendingChanges,
@@ -18,6 +20,7 @@ import {
 
 export type MockIntent =
   | "greeting"
+  | "weekend"
   | "checkin"
   | "suggest"
   | "review"
@@ -130,6 +133,26 @@ function debtText(profile: Profile, extra: number | undefined): { text: string; 
   };
 }
 
+function weekendReply(state: SaverState, text: string): MockReply | null {
+  const plan = planWeekendRecovery(state);
+  if (!plan) return null;
+  const picked = plan.options.find((option) => text.toLowerCase().includes(option.title.toLowerCase()));
+  if (picked) {
+    return {
+      intent: "weekend",
+      text: `Good pick. ${picked.title} saves ${gbp(picked.perWeek)} a week, and over ${picked.weeks} weeks that brings ${plan.overspend.goalName} ${picked.daysWonBack} days closer. Want me to put ${gbp(picked.perWeek)} a week toward ${plan.overspend.goalName} while you do it?`,
+      calls: [],
+    };
+  }
+  if (!/save (?:it|that) back|win (?:it|that) back|weekend/.test(text.toLowerCase())) return null;
+  const soonest = [...plan.options].sort((a, b) => b.daysWonBack - a.daysWonBack || b.total - a.total)[0];
+  return {
+    intent: "weekend",
+    text: `Here are ${plan.options.length} ways to save back that ${gbp(plan.overspend.over)} over the next few weeks, all from how you usually spend. ${soonest.title} gets ${plan.overspend.goalName} back on track soonest, and you can mix two if that feels easier. Which one feels doable?`,
+    calls: [{ id: "mock-weekend", name: "plan_weekend_recovery", input: {}, output: plan }],
+  };
+}
+
 function friend(name: string, text: string): string {
   const who = name.trim();
   if (!who || text.toLowerCase().startsWith(who.toLowerCase())) return text;
@@ -138,13 +161,14 @@ function friend(name: string, text: string): string {
 
 export function buildMockReply(input: {
   profile: Profile;
+  state?: SaverState;
   text: string;
   messages?: IncomingMessage[];
   goals?: Goal[];
   history?: HistorySnapshot[];
   today?: Date;
 }): MockReply {
-  const reply = composeMockReply(input);
+  const reply = (input.state && weekendReply(input.state, input.text)) || composeMockReply(input);
   return { ...reply, text: friend(input.profile.name, reply.text) };
 }
 
@@ -301,6 +325,7 @@ export function createMockUIMessageStream(reply: MockReply): ReadableStream<UIMe
 
 export function mockChatResponse(input: {
   profile: Profile;
+  state?: SaverState;
   messages: IncomingMessage[];
   goals?: Goal[];
   history?: HistorySnapshot[];
@@ -308,6 +333,7 @@ export function mockChatResponse(input: {
 }): Response {
   const reply = buildMockReply({
     profile: input.profile,
+    state: input.state,
     text: lastUserText(input.messages),
     messages: input.messages,
     goals: input.goals,

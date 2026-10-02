@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { coachFollowUp } from "./extract-goals";
-import { accentFor, estimatedWordDelays, replyEndsConversation, voiceStatus, wordAt } from "./voice";
+import { accentFor, estimatedWordDelays, preferredBritishVoice, replyEndsConversation, voiceStatus, wordAt } from "./voice";
 
 describe("spoken highlighting", () => {
   it("maps a character position to the word being spoken", () => {
@@ -37,5 +37,27 @@ describe("voice conversation", () => {
     expect(voiceStatus("listening", true)).toMatch(/Listening/);
     expect(voiceStatus("speaking", true)).toMatch(/Speaking/);
     expect(voiceStatus("idle", false)).toMatch(/type your answer/i);
+  });
+});
+describe("coach voice", () => {
+  const voice = (name: string, lang: string) => ({ name, lang, voiceURI: name }) as SpeechSynthesisVoice;
+
+  it("always picks a British female voice over British male or other accents", () => {
+    const voices = [
+      voice("Daniel (Enhanced)", "en-GB"),
+      voice("Samantha", "en-US"),
+      voice("Google UK English Male", "en-GB"),
+      voice("Google UK English Female", "en-GB"),
+    ];
+    expect(preferredBritishVoice(voices)?.name).toBe("Google UK English Female");
+  });
+
+  it("prefers a higher quality British female voice", () => {
+    const voices = [voice("Kate", "en-GB"), voice("Serena (Premium)", "en-GB")];
+    expect(preferredBritishVoice(voices)?.name).toBe("Serena (Premium)");
+  });
+
+  it("never falls back to a male or non-British voice", () => {
+    expect(preferredBritishVoice([voice("Daniel", "en-GB"), voice("Samantha", "en-US")])).toBeUndefined();
   });
 });

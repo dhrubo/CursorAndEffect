@@ -12,6 +12,8 @@ import type { SaverState } from "@/lib/saver/schema";
 type CoachContextValue = {
   messages: AppUIMessage[];
   send: (text: string) => void;
+  /** Reply to an opening line the coach showed before the chat began. */
+  replyToOpener: (opener: string, text: string) => void;
   status: string;
   error: Error | undefined;
   stop: () => void;
@@ -37,6 +39,12 @@ export function CoachProvider({ children }: { children: ReactNode }) {
     chat.sendMessage({ text: trimmed }, { body: state ? { state } : { profile: EMPTY_PROFILE } });
   };
 
+  const replyToOpener = (opener: string, text: string) => {
+    if (chat.messages.length > 0) return send(text);
+    chat.setMessages([{ id: "coach-opener", role: "assistant", parts: [{ type: "text", text: opener }] }]);
+    send(text);
+  };
+
   const openCoach = (prefill?: string) => {
     router.push(prefill ? `/coach?q=${encodeURIComponent(prefill)}` : "/coach");
   };
@@ -46,6 +54,7 @@ export function CoachProvider({ children }: { children: ReactNode }) {
       value={{
         messages: chat.messages,
         send,
+        replyToOpener,
         status: chat.status,
         error: chat.error,
         stop: chat.stop,

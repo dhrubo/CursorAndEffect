@@ -11,7 +11,7 @@ export function PlanDashboard({ state }: { state: SaverState }) {
 
   return (
     <main>
-      <section className="bg-[url('/brand/image-mesh-gradient.jpg')] bg-cover bg-center px-4 pt-6 pb-14">
+      <section className="px-4 pt-6 pb-6">
         <p className="inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/30 px-3 py-1 text-[14px] text-[#1a1a1a] backdrop-blur-md">
           <span aria-hidden="true">✦</span> Summary
         </p>
@@ -29,7 +29,7 @@ export function PlanDashboard({ state }: { state: SaverState }) {
           </figure>
         </div>
       </section>
-      <section className="relative z-10 -mt-8 min-h-[50vh] rounded-t-[28px] bg-white px-4 pt-6 pb-10 text-[#1a1a1a]">
+      <section className="px-4 pt-2 pb-10 text-[#1a1a1a]">
         <h2 className="mb-4 flex items-center gap-1.5 text-[18px] font-medium">
           <span aria-hidden="true">✦</span> Goals
         </h2>
@@ -38,7 +38,7 @@ export function PlanDashboard({ state }: { state: SaverState }) {
             <Link
               key={goal.id}
               href={`/goals/${goal.id}`}
-              className="grid gap-4 rounded-[18px] border border-[#1a1a1a] p-4 transition-colors hover:bg-[#1a1a1a]/5"
+              className="grid gap-4 rounded-[18px] border border-white/75 bg-white/30 p-4 backdrop-blur-md transition-colors hover:bg-white/45"
             >
               <p className="max-w-[8rem] text-[18px] leading-tight">{goal.name}</p>
               <GoalRing name={goal.name} saved={goal.savedSoFar} target={goal.targetAmount} />
@@ -63,13 +63,13 @@ function GoalRing({ name, saved, target }: { name: string; saved: number; target
   return (
     <div className="grid justify-items-center gap-2">
       <svg viewBox="0 0 72 72" className="size-16" role="img" aria-label={`${name}: ${gbp(saved)} saved of ${gbp(target)}`}>
-        <circle cx="36" cy="36" r={radius} fill="none" stroke="#e4e4e4" strokeWidth="8" />
+        <circle cx="36" cy="36" r={radius} fill="none" stroke="rgb(255 255 255 / 55%)" strokeWidth="8" />
         <circle
           cx="36"
           cy="36"
           r={radius}
           fill="none"
-          stroke="#3dce3a"
+          stroke="#1a1a1a"
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -79,7 +79,7 @@ function GoalRing({ name, saved, target }: { name: string; saved: number; target
       </svg>
       <p className="text-center text-[13px] leading-tight tabular-nums">
         {gbp(saved)} saved
-        <span className="block text-[#1a1a1a]/60">of {gbp(target)}</span>
+        <span className="block text-[#1a1a1a]/70">of {gbp(target)}</span>
       </p>
     </div>
   );

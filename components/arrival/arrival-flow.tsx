@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MicIcon, SendIcon } from "lucide-react";
 import { BrandStar } from "@/components/shell/brand-mark";
@@ -12,13 +12,9 @@ import { extractGoals } from "@/lib/plan/extract-goals";
 import {
   canListen,
   canSpeak,
-  defaultVoiceId,
   listenOnce,
   replyEndsConversation,
-  serverVoiceSnapshot,
   speak,
-  subscribeVoices,
-  voiceSnapshot,
   voiceStatus,
   type VoicePhase,
 } from "@/lib/plan/voice";
@@ -39,7 +35,6 @@ const ACCOUNTS: { source: keyof Connections; name: string }[] = [
 
 const EMPTY_CONNECTIONS: Connections = { banking: false, investments: false, other: false };
 const VOICE_KEY = "nurture.voice.v1";
-const VOICE_PREVIEW = "Hello. This is how I'll sound while we plan.";
 
 function storedVoice(): string {
   if (typeof window === "undefined") return "";
@@ -74,7 +69,7 @@ export function ArrivalFlow() {
   const [voicePhase, setVoicePhase] = useState<VoicePhase>("idle");
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [voiceHint, setVoiceHint] = useState("");
-  const [chosenVoice, setChosenVoice] = useState(storedVoice);
+  const [chosenVoice] = useState(storedVoice);
   const [speakingLine, setSpeakingLine] = useState(-1);
   const [spokenWord, setSpokenWord] = useState(-1);
   const [connections, setConnections] = useState<Connections>(EMPTY_CONNECTIONS);
@@ -82,8 +77,6 @@ export function ArrivalFlow() {
   const [pending, setPending] = useState<keyof Connections | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
-  const voices = useSyncExternalStore(subscribeVoices, voiceSnapshot, serverVoiceSnapshot);
-  const voiceId = voices.some((voice) => voice.id === chosenVoice) ? chosenVoice : defaultVoiceId(voices);
   const linesRef = useRef(lines);
   const voiceRef = useRef(chosenVoice);
   const voiceLoop = useRef(false);
@@ -216,13 +209,6 @@ export function ArrivalFlow() {
     speakThenListen(lastCoach?.text ?? OPENING);
   };
 
-  const chooseVoice = (id: string) => {
-    setChosenVoice(id);
-    voiceRef.current = id;
-    window.localStorage.setItem(VOICE_KEY, id);
-    if (voicePhase === "idle") readAloud(VOICE_PREVIEW);
-  };
-
   useEffect(() => {
     return () => {
       voiceLoop.current = false;
@@ -328,22 +314,6 @@ export function ArrivalFlow() {
           <p className="text-center text-[15px] text-[#1a1a1a]/70" aria-live="polite">
             {voiceHint || voiceStatus(voicePhase, voiceSupported)}
           </p>
-          {voices.length > 0 && (
-            <label className="flex items-center gap-2 text-[14px] text-[#1a1a1a]/70">
-              Voice
-              <select
-                value={voiceId}
-                onChange={(event) => chooseVoice(event.target.value)}
-                className="max-w-[16rem] rounded-full border border-[#1a1a1a]/30 bg-white/40 px-3 py-1.5 text-[14px] text-[#1a1a1a] outline-none"
-              >
-                {voices.map((voice) => (
-                  <option key={voice.id} value={voice.id} className="text-[#1a1a1a]">
-                    {voice.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
         </div>
         <div className="grid flex-1 content-start gap-3">
           {lines.map((line, index) => (

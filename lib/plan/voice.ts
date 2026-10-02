@@ -146,12 +146,10 @@ const NO_VOICES: VoiceOption[] = [];
 let cachedKey = "";
 let cachedVoices: VoiceOption[] = NO_VOICES;
 
+// Coach always speaks as a British woman, so only those voices are offered.
 export function voiceSnapshot(): VoiceOption[] {
   if (!canSpeak()) return NO_VOICES;
-  const voices = window.speechSynthesis
-    .getVoices()
-    .filter((voice) => voice.lang.toLowerCase().startsWith("en"))
-    .sort((a, b) => accentFor(a.lang).localeCompare(accentFor(b.lang)) || a.name.localeCompare(b.name));
+  const voices = britishFemaleVoices(window.speechSynthesis.getVoices()).sort((a, b) => a.name.localeCompare(b.name));
   const key = voices.map((voice) => voice.voiceURI).join("|");
   if (key !== cachedKey) {
     cachedKey = key;
@@ -179,18 +177,38 @@ export function defaultVoiceId(voices: VoiceOption[]): string {
   return [...voices].sort((a, b) => voiceQualityScore(b) - voiceQualityScore(a))[0]?.id ?? "";
 }
 
+// British female voices shipped by Chrome, Safari/macOS and Edge/Windows.
+const FEMALE_NAMES = /\b(female|serena|kate|stephanie|martha|libby|sonia|maisie|hollie|bella|abbi|olivia|mia|hazel|susan|shelley|sandy|flo)\b/;
+const MALE_NAMES = /\b(male|daniel|arthur|oliver|george|ryan|thomas|alfie|elliot|ethan|noah|malcolm|eddy|reed|rocko|grandpa)\b/;
+
+function isBritish(lang: string): boolean {
+  return lang.toLowerCase().replace("_", "-") === "en-gb";
+}
+
 function voiceQualityScore(voice: Pick<VoiceOption, "id" | "label" | "lang">): number {
-  const language = voice.lang.toLowerCase().replace("_", "-");
   const name = `${voice.label} ${voice.id}`.toLowerCase();
-  let score = language === "en-gb" ? 1000 : language.startsWith("en") ? 100 : 0;
-  if (/(enhanced|premium|neural|natural|siri|online)/.test(name)) score += 100;
-  if (/(daniel|serena|sonia|ryan|libby|maisie|google uk english)/.test(name)) score += 40;
-  if (/(compact|espeak|novelty)/.test(name)) score -= 100;
+  let score = isBritish(voice.lang) ? 1000 : 0;
+  if (FEMALE_NAMES.test(name)) score += 200;
+  if (MALE_NAMES.test(name)) score -= 500;
+  if (/(enhanced|premium|neural|natural|online)/.test(name)) score += 100;
+  if (/(compact|espeak|novelty|grandma)/.test(name)) score -= 100;
   return score;
 }
 
-function preferredBritishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
-  return [...voices].sort((a, b) => {
+function isBritishFemale(voice: SpeechSynthesisVoice): boolean {
+  const name = `${voice.name} ${voice.voiceURI}`.toLowerCase();
+  return isBritish(voice.lang) && FEMALE_NAMES.test(name) && !MALE_NAMES.test(name);
+}
+
+// Falls back to any British voice that isn't known to be male when a device has no named female one.
+function britishFemaleVoices(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
+  const female = voices.filter(isBritishFemale);
+  if (female.length > 0) return female;
+  return voices.filter((voice) => isBritish(voice.lang) && !MALE_NAMES.test(`${voice.name} ${voice.voiceURI}`.toLowerCase()));
+}
+
+export function preferredBritishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  return britishFemaleVoices(voices).sort((a, b) => {
     const aScore = voiceQualityScore({ id: a.voiceURI, label: a.name, lang: a.lang });
     const bScore = voiceQualityScore({ id: b.voiceURI, label: b.name, lang: b.lang });
     return bScore - aScore;
@@ -218,11 +236,11 @@ function speakNow(
   synth.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = synth.getVoices();
-  const voice =
-    voices.find((item) => item.voiceURI === voiceId) ??
-    preferredBritishVoice(voices);
+  // A saved choice is honoured only if it is still a British female voice.
+  const chosen = voices.find((item) => item.voiceURI === voiceId);
+  const voice = chosen && britishFemaleVoices(voices).includes(chosen) ? chosen : preferredBritishVoice(voices);
   if (voice) utterance.voice = voice;
-  utterance.lang = voice?.lang ?? "en-GB";
+  utterance.lang = "en-GB";
   utterance.rate = rate;
   let settled = false;
   let heardBoundary = false;

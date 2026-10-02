@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { CalculatorIcon, LoaderCircleIcon } from "lucide-react";
 import type { AppUIMessage } from "@/lib/ai/tools";
 import type { CheckIn } from "@/lib/checkin/build";
+import type { WeekendRecoveryPlan } from "@/lib/coach/weekend";
 import { formatDayMonth } from "@/lib/saver/dates";
 import { useSaver } from "@/lib/saver/use-saver-state";
 import type { Goal } from "@/lib/saver/schema";
@@ -33,6 +34,7 @@ const TOOL_LABELS: Record<string, string> = {
   "tool-replan_goal": "Replanning",
   "tool-milestone_check": "Checking in",
   "tool-propose_goal": "Drafting a plan",
+  "tool-plan_weekend_recovery": "Finding ways to save it back",
 };
 
 export function isToolPart(part: Part): boolean {
@@ -45,7 +47,7 @@ export function ToolPart({ part }: { part: Part }) {
 
   if (part.state === "input-streaming" || part.state === "input-available") {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-dashed bg-background px-3 py-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-2xl border border-dashed border-[#1a1a1a]/25 bg-white/30 px-3 py-2 text-xs text-[#1a1a1a]/70">
         <LoaderCircleIcon className="size-3.5 animate-spin" /> {label}...
       </div>
     );
@@ -175,6 +177,12 @@ export function ToolPart({ part }: { part: Part }) {
           )}
         </Shell>
       );
+    case "tool-plan_weekend_recovery":
+      return (
+        <Shell title={"error" in part.output ? "Last weekend" : `Save back ${gbp(part.output.overspend.over)}`}>
+          {"error" in part.output ? <Muted>{part.output.error}</Muted> : <WeekendRecovery plan={part.output} />}
+        </Shell>
+      );
     case "tool-propose_goal":
       return (
         <Shell title={part.output.name}>
@@ -191,10 +199,10 @@ export function ToolPart({ part }: { part: Part }) {
 
 function Shell({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="grid gap-3 rounded-xl border bg-background p-3 text-sm shadow-xs">
+    <div className="grid gap-3 rounded-2xl border border-[#1a1a1a]/20 bg-white/40 p-3 text-sm text-[#1a1a1a]">
       <div className="flex items-center justify-between gap-2">
         <p className="font-medium">{title}</p>
-        <Badge variant="secondary" className="gap-1">
+        <Badge variant="secondary" className="gap-1 bg-white/50 text-[#1a1a1a]">
           <CalculatorIcon /> Calculated
         </Badge>
       </div>
@@ -290,6 +298,36 @@ function CheckInSummary({ checkin }: { checkin: CheckIn }) {
   );
 }
 
+function WeekendRecovery({ plan }: { plan: WeekendRecoveryPlan }) {
+  const { overspend } = plan;
+  return (
+    <div className="grid gap-2">
+      <p className="text-xs text-muted-foreground">
+        {formatDayMonth(overspend.start)} to {formatDayMonth(overspend.end)}: {gbp(overspend.spent)} eating out, against about{" "}
+        {gbp(overspend.typical)} on a usual weekend.
+      </p>
+      {plan.options.map((option) => (
+        <div key={option.id} className="rounded-xl border border-[#1a1a1a]/15 p-2.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="font-medium">{option.title}</p>
+            <p className="shrink-0 tabular-nums">{gbp(option.perWeek)} / week</p>
+          </div>
+          <p className="text-xs text-muted-foreground">{option.detail}</p>
+          <ul className="mt-1 list-disc pl-4 text-xs text-muted-foreground">
+            {option.ideas.map((idea) => (
+              <li key={idea}>{idea}</li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs">
+            {gbp(option.total)} over {option.weeks} {option.weeks === 1 ? "week" : "weeks"}
+            {option.coversOverspend ? ", the whole weekend back" : ""}. Brings {overspend.goalName} {option.daysWonBack} days closer.
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SpendingReviewCard({ review }: { review: SpendingReview }) {
   return (
     <div className="grid gap-2">
@@ -323,7 +361,7 @@ function SpendingSuggestions({ suggestions }: { suggestions: SpendingSuggestion[
   return (
     <div className="grid gap-2">
       {suggestions.map((suggestion) => (
-        <div key={suggestion.id} className="rounded-lg border p-2.5">
+        <div key={suggestion.id} className="rounded-xl border border-[#1a1a1a]/15 p-2.5">
           <div className="flex items-baseline justify-between gap-2">
             <p className="font-medium">{suggestion.title}</p>
             <p className="shrink-0 tabular-nums">{gbp(suggestion.freeableMonthly)} / month</p>

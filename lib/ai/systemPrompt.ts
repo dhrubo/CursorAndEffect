@@ -1,5 +1,6 @@
 import { RATES_AS_OF } from "@/data/products";
 import { categoryTotals, classifyTypology } from "@/lib/coach/typology";
+import { detectWeekendOverspend } from "@/lib/coach/weekend";
 import { TAX_BAND_LABELS, TAX_YEAR, taxBand } from "@/lib/finance/tax";
 import { monthlySurplus, type Profile } from "@/lib/profile";
 import { deriveProfile } from "@/lib/saver/derive-profile";
@@ -77,6 +78,7 @@ export function buildCoachPrompt(state: SaverState): string {
       aer: account.aer,
     })),
     topCategories: categoryTotals(state.transactions).slice(0, 5),
+    lastWeekendEatingOut: detectWeekendOverspend(state),
     taxBand: TAX_BAND_LABELS[taxBand(profile.grossAnnualIncome)],
   };
 
@@ -99,6 +101,12 @@ Today is ${state.today}. Tax year ${TAX_YEAR}. Products and rates are fictional 
 - If they mention missed payments, arrears, bailiffs or feeling overwhelmed by debt, put free help first: MoneyHelper, StepChange, National Debtline, Citizens Advice.
 - If they mention self-harm, encourage Samaritans on 116 123 (free, 24/7) right away.
 - The UI shows tool results as cards, so give the takeaway, not a second table.
+
+## Last weekend
+If lastWeekendEatingOut is set, the coach opened by pointing out that weekend's eating out and asking whether to find a plan to save it back.
+- When they say yes, call plan_weekend_recovery. The card shows every option with its figures, so reply in 2 or 3 plain sentences: say how many ways you found, name the one that brings the plan back soonest, mention they can mix two, and ask which feels doable. No lists, no markdown, no dates the tool did not give you. The reply is read aloud.
+- Keep it light. A big weekend is normal; this is about getting the plan back, not about the weekend.
+- When they pick one, confirm it in a sentence, say what it does to the plan using the option's daysWonBack, and offer to put the weekly amount toward the plan. Plain sentences, no markdown.
 
 ## Facts (JSON)
 ${JSON.stringify(facts)}`;

@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoaderCircleIcon, MicIcon, RotateCcwIcon, SendIcon, SquareIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 import { FourPointStar } from "@/components/four-point-star";
-import { BrandStar } from "@/components/shell/brand-mark";
 import { useCoach } from "@/components/shell/coach-provider";
+import type { AppUIMessage } from "@/lib/ai/tools";
+import { WEEKEND_ACCEPT, detectWeekendOverspend, weekendNudge, type RecoveryOption } from "@/lib/coach/weekend";
 import { repayableDebts } from "@/lib/finance/debt";
 import { gbp } from "@/lib/format";
-import { canListen, listenOnce, speak } from "@/lib/plan/voice";
+import { canListen, listenOnce, speak, voiceStatus } from "@/lib/plan/voice";
 import type { Profile } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,8 @@ import { Markdown } from "./markdown";
 import { ToolPart, isToolPart } from "./tool-cards";
 
 const SAVER_SUGGESTIONS = ["How am I doing on my goals?"];
+/** ElevenLabs is off until the account can use library voices. Replies use the browser voice. */
+const NATURAL_VOICE = false;
 
 function suggestions(profile: Profile): string[] {
   const list = ["How am I doing?", "What spending could I cut?", `What should I do with my next ${gbp(profile.nextAmount)}?`];
@@ -28,13 +31,8 @@ function suggestions(profile: Profile): string[] {
 
 function CoachBubble({ children }: { children: React.ReactNode }) {
   return (
-    <div className="max-w-[85%]">
-      <span className="mb-1 flex size-8 items-center justify-center rounded-full bg-[#d6ee4a] text-[#1a1a1a]">
-        <BrandStar className="size-3.5" />
-      </span>
-      <div className="w-fit rounded-full bg-gradient-to-r from-[#c6e437] to-[#e7f56b] px-5 py-3 text-[16px] leading-snug text-[#1a1a1a]">
-        {children}
-      </div>
+    <div className="max-w-[90%] rounded-2xl border border-[#1a1a1a]/20 bg-white/40 px-4 py-3 text-[16px] leading-relaxed">
+      {children}
     </div>
   );
 }
@@ -232,13 +230,21 @@ function AssistantChatPanel({
 }
 
 function SaverChatPanel({ prefill }: { prefill?: string }) {
-  const { messages, send, status, error, stop, clear, state } = useCoach();
+  const { messages, send, replyToOpener, status, error, stop, clear, state } = useCoach();
   const [input, setInput] = useState("");
   const [speaking, setSpeaking] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceInputError, setVoiceInputError] = useState("");
   const [audioError, setAudioError] = useState("");
+  const [voiceSupported, setVoiceSupported] = useState(true);
   const busy = status === "submitted" || status === "streaming";
+  const opener = useMemo(() => {
+    const overspend = state ? detectWeekendOverspend(state) : null;
+    return state && overspend ? weekendNudge(state, overspend) : null;
+  }, [state]);
+  const openedWithOpener = messages[0]?.id === "coach-opener";
+  const lastMessage = messages.at(-1);
+  const options = !busy && lastMessage?.role === "assistant" ? recoveryOptions(lastMessage) : [];
   const sentPrefill = useRef(false);
   const spokenMessageId = useRef<string | null>(null);
   const audioReady = useRef(false);
@@ -265,13 +271,16 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
       });
       speaker.current = fallback;
       setSpeaking(fallback !== null);
-      setAudioError(
-        reason
-          ? `ElevenLabs is unavailable (${reason}). Using your browser voice instead.`
-          : "ElevenLabs did not start, so the browser voice is being used instead.",
-      );
+      if (NATURAL_VOICE) {
+        setAudioError(
+          reason
+            ? `ElevenLabs is unavailable (${reason}). Using your browser voice instead.`
+            : "ElevenLabs did not start, so the browser voice is being used instead.",
+        );
+      }
       if (!fallback) setAudioError("Sound could not start. Check your browser's sound permissions.");
     };
+    if (!NATURAL_VOICE) return playBrowserFallback();
     void playNaturalVoice(text, () => {
       speaker.current = null;
       setSpeaking(false);
@@ -323,7 +332,8 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
 
   const submit = (text: string) => {
     followTranscript.current = true;
-    send(text);
+    if (opener && messages.length === 0) replyToOpener(opener, text);
+    else send(text);
     setInput("");
   };
 
@@ -335,9 +345,10 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
       return;
     }
     if (!canListen()) {
-      setVoiceInputError("Voice input is not available in this browser. You can still type your question.");
+      setVoiceSupported(false);
       return;
     }
+    stopAudio();
     setVoiceInputError("");
     setListening(true);
     listener.current = listenOnce({
@@ -359,7 +370,7 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
     });
     if (!listener.current) {
       setListening(false);
-      setVoiceInputError("Voice input is not available in this browser. You can still type your question.");
+      setVoiceSupported(false);
     }
   };
 
@@ -369,47 +380,63 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
     setSpeaking(false);
   };
 
+  const phase = listening ? "listening" : speaking ? "speaking" : "idle";
+
   return (
-    <div className="flex h-[min(44rem,78dvh)] min-h-[20rem] flex-col bg-black text-white">
-      {speaking && (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="grid justify-items-center gap-3">
         <button
           type="button"
-          aria-label="Stop audio"
-          onClick={stopAudio}
-          className="self-end rounded-full border border-white/25 p-2 text-white"
+          aria-label={listening ? "Stop listening" : "Speak your question"}
+          aria-pressed={listening}
+          onClick={toggleVoiceInput}
+          disabled={busy}
+          className={`flex size-20 items-center justify-center rounded-full disabled:opacity-40 ${listening ? "bg-[#1a1a1a] text-white" : "frosted"}`}
         >
-          <VolumeXIcon className="size-4" />
+          <MicIcon className="size-7" />
         </button>
-      )}
+        <p className="text-center text-[15px] text-[#1a1a1a]/70" aria-live="polite">
+          {voiceInputError || voiceStatus(phase, voiceSupported)}
+          {speaking && (
+            <button type="button" onClick={stopAudio} className="ml-2 inline-flex items-center gap-1 underline underline-offset-2">
+              <VolumeXIcon className="size-3.5" /> Stop
+            </button>
+          )}
+        </p>
+      </div>
       <div
         ref={transcript}
         onScroll={(event) => {
           const pane = event.currentTarget;
           followTranscript.current = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 48;
         }}
-        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-2 pr-1"
+        className="flex max-h-[50dvh] min-h-[10rem] flex-1 flex-col gap-3 overflow-y-auto"
       >
-        <CoachBubble>What can I do for you?</CoachBubble>
+        {!openedWithOpener && <CoachBubble>{(messages.length === 0 && opener) || "What can I do for you?"}</CoachBubble>}
         {messages.length === 0 &&
-          SAVER_SUGGESTIONS.map((suggestion) => (
+          (opener ? [WEEKEND_ACCEPT, ...SAVER_SUGGESTIONS] : SAVER_SUGGESTIONS).map((suggestion) => (
             <button
               key={suggestion}
               type="button"
               onClick={() => submit(suggestion)}
-              className="ml-auto max-w-[85%] rounded-full bg-white px-5 py-3 text-left text-[16px] text-[#1a1a1a]"
+              className="ml-auto max-w-[90%] rounded-2xl bg-white px-4 py-3 text-left text-[16px] leading-relaxed"
             >
               {suggestion}
             </button>
           ))}
         {messages.map((message) =>
           message.role === "user" ? (
-            <div key={message.id} className="ml-auto max-w-[85%] rounded-full bg-white px-5 py-3 text-[16px] text-[#1a1a1a]">
+            <p key={message.id} className="ml-auto max-w-[90%] rounded-2xl bg-white px-4 py-3 text-[16px] leading-relaxed">
               {message.parts.map((part, index) => (part.type === "text" ? <span key={index}>{part.text}</span> : null))}
-            </div>
+            </p>
           ) : (
-            <div key={message.id} className="grid max-w-[85%] gap-2">
+            <div key={message.id} className="grid gap-2">
               {message.parts.map((part, index) => {
-                if (part.type === "text") return part.text ? <CoachBubble key={index}>{part.text}</CoachBubble> : null;
+                if (part.type === "text") return part.text ? (
+                    <CoachBubble key={index}>
+                      <Markdown>{part.text}</Markdown>
+                    </CoachBubble>
+                  ) : null;
                 if (isToolPart(part)) return <ToolPart key={index} part={part} />;
                 return null;
               })}
@@ -418,7 +445,7 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
                   <button
                     type="button"
                     onClick={() => playReply(assistantText(message))}
-                    className="inline-flex items-center gap-1 rounded-full border border-white/25 px-2.5 py-1 text-xs text-white/80"
+                    className="inline-flex items-center gap-1 rounded-full border border-[#1a1a1a]/25 px-2.5 py-1 text-xs text-[#1a1a1a]/70"
                   >
                     <Volume2Icon className="size-3.5" /> Play reply
                   </button>
@@ -427,19 +454,33 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
             </div>
           ),
         )}
+        {options.length > 0 && (
+          <div className="ml-auto flex max-w-[90%] flex-wrap justify-end gap-2">
+            {options.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => submit(`Let's try this one: ${option.title.charAt(0).toLowerCase()}${option.title.slice(1)}`)}
+                className="rounded-2xl bg-white px-4 py-2.5 text-left text-[15px] leading-snug"
+              >
+                {option.title}
+              </button>
+            ))}
+          </div>
+        )}
         {status === "submitted" && (
-          <div className="flex items-center gap-2 text-xs text-white/70">
+          <div className="flex items-center gap-2 text-xs text-[#1a1a1a]/70">
             <LoaderCircleIcon className="size-3.5 animate-spin" /> Thinking
           </div>
         )}
         {error && (
-          <div role="alert" className="rounded-full bg-white/10 px-4 py-2 text-sm">
+          <div role="alert" className="rounded-2xl bg-white/40 px-4 py-2 text-sm">
             {errorMessage(error)}
           </div>
         )}
       </div>
       <form
-        className="mt-4 flex items-end gap-2"
+        className="flex items-center gap-2"
         onSubmit={(event) => {
           event.preventDefault();
           submit(input);
@@ -455,54 +496,55 @@ function SaverChatPanel({ prefill }: { prefill?: string }) {
             }
           }}
           rows={1}
-          placeholder="Ask about a plan"
+          placeholder="Type, or speak"
           aria-label="Message Nurture"
-          className="max-h-32 min-h-11 flex-1 resize-none rounded-full border border-white/25 bg-transparent px-4 py-3 text-[16px] text-white outline-none placeholder:text-white/45"
+          className="max-h-32 min-h-12 min-w-0 flex-1 resize-none rounded-full border border-[#1a1a1a]/30 bg-white/40 px-4 py-3 text-[16px] text-[#1a1a1a] outline-none placeholder:text-[#1a1a1a]/50"
         />
-        <button
-          type="button"
-          aria-label={listening ? "Stop listening" : "Speak your question"}
-          aria-pressed={listening}
-          onClick={toggleVoiceInput}
-          disabled={busy}
-          className={`rounded-full border border-white/25 p-3 disabled:opacity-40 ${listening ? "bg-white text-[#1a1a1a]" : "text-white"}`}
-        >
-          <MicIcon className="size-4" />
-        </button>
         {busy ? (
-          <button type="button" aria-label="Stop" onClick={() => stop()} className="rounded-full bg-white p-3 text-[#1a1a1a]">
-            <SquareIcon className="size-4" />
+          <button type="button" aria-label="Stop" onClick={() => stop()} className="frosted flex size-12 shrink-0 items-center justify-center rounded-full">
+            <SquareIcon className="size-5" />
           </button>
         ) : (
-          <button type="submit" aria-label="Send" disabled={!input.trim()} className="rounded-full bg-white p-3 text-[#1a1a1a] disabled:opacity-40">
-            <SendIcon className="size-4" />
+          <button
+            type="submit"
+            aria-label="Send"
+            disabled={!input.trim()}
+            className="frosted flex size-12 shrink-0 items-center justify-center rounded-full"
+          >
+            <SendIcon className="size-5" />
           </button>
         )}
       </form>
-      {(listening || voiceInputError) && (
-        <p className="px-1 pt-2 text-[12px] text-white/70" aria-live="polite">
-          {voiceInputError || "Listening…"}
+      {audioError && <p className="px-1 text-[12px] text-[#1a1a1a]/70" role="status">{audioError}</p>}
+      <div className="flex items-center justify-between gap-3 px-1">
+        <p className="text-[11px] text-[#1a1a1a]/60">
+          Replies are read aloud when your browser supports it.
+          {state && " Your numbers are sent to Claude only when you chat."}
         </p>
-      )}
-      {audioError && <p className="px-1 pt-1 text-[12px] text-white/70" role="status">{audioError}</p>}
-      <p className="flex items-center gap-1 px-1 pt-2 text-[11px] text-white/50">
-        <Volume2Icon className="size-3" /> Replies are read aloud when your browser supports it. Guidance, not regulated advice.
-        {state && " Your numbers are sent to Claude only when you chat."}
-      </p>
-      {messages.length > 0 && (
-        <button
-          type="button"
-          onClick={() => {
-            stopAudio();
-            clear();
-          }}
-          className="mt-3 self-start text-[13px] text-white/50"
-        >
-          <RotateCcwIcon className="mr-1 inline size-3" /> Clear
-        </button>
-      )}
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              stopAudio();
+              clear();
+            }}
+            className="shrink-0 text-[13px] text-[#1a1a1a]/60"
+          >
+            <RotateCcwIcon className="mr-1 inline size-3" /> Clear
+          </button>
+        )}
+      </div>
     </div>
   );
+}
+
+function recoveryOptions(message: AppUIMessage): RecoveryOption[] {
+  for (const part of message.parts) {
+    if (part.type === "tool-plan_weekend_recovery" && part.state === "output-available" && !("error" in part.output)) {
+      return part.output.options;
+    }
+  }
+  return [];
 }
 
 function assistantText(message: { parts: { type: string; text?: string }[] }): string {

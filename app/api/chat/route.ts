@@ -36,6 +36,7 @@ export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return mockChatResponse({
       profile: resolvedProfile,
+      state: state.success ? state.data : undefined,
       messages: body.messages,
     });
   }

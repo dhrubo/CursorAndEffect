@@ -12,6 +12,13 @@ export type SaverPersona = {
   state: SaverState;
 };
 
+/** Last weekend was payday, and Jordyn ate out all three days. The coach opens on it. */
+const PAYDAY_WEEKEND: SaverState["transactions"] = [
+  { id: "weekend-1", accountId: "jor-current", date: "2026-09-25", merchant: "Hawksmoor", amount: -68, category: "eating_out", recurring: false },
+  { id: "weekend-2", accountId: "jor-current", date: "2026-09-26", merchant: "Dishoom", amount: -42, category: "eating_out", recurring: false },
+  { id: "weekend-3", accountId: "jor-current", date: "2026-09-26", merchant: "Deliveroo", amount: -31, category: "eating_out", recurring: false },
+];
+
 const jordynProfile: Profile = {
   ...EMPTY_PROFILE,
   name: "Jordyn",
@@ -112,14 +119,17 @@ export const SAVER_PERSONAS: SaverPersona[] = [
           autoSave: { amount: 50, cadence: "payday", enabled: true },
         }),
       ],
-      transactions: seededTransactions({
-        accountId: "jor-current",
-        seed: 24,
-        today: DEMO_TODAY,
-        salary: 2100,
-        paydayDay: 25,
-        weights: SOCIAL_WEIGHTS,
-      }),
+      transactions: [
+        ...seededTransactions({
+          accountId: "jor-current",
+          seed: 24,
+          today: DEMO_TODAY,
+          salary: 2100,
+          paydayDay: 25,
+          weights: SOCIAL_WEIGHTS,
+        }),
+        ...PAYDAY_WEEKEND,
+      ],
       coachEvents: [],
     },
   },
